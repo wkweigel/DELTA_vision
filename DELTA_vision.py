@@ -715,11 +715,11 @@ except:
 
 #for node in nodes:
 #    process_topology(node)
-
+refresh_vars()
 node_selection= st.sidebar.selectbox('Choose a node to inspect:',(nodes))
 process_topology(str(node_selection))
 #HtmlFile2 = open('G:/DEL Topology Tool (LAB)/Tree Generation/StreamLit Project/html_files/' + str(node_selection) + '.html','r',encoding='utf-8')
-refresh_vars()
+
  
 # Load HTML into HTML component for display on Streamlit
 
