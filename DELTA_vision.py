@@ -11,7 +11,7 @@ import numpy as np
 from pyvis.network import Network
 
 
-top_strings=['AB','ABC','!ABCD!', 'A!BCD!', 'ABCDE', 'AB(C)DE', 'A!BC(D!)E' ,'ABCD','AB(C)D', '!ABC!D']
+
 elements = 'ABCDEFGHIJKLMNOP'
 linkers = "abcdefgh"
 elements_list= list(elements)
@@ -19,7 +19,16 @@ linkers_list= list(linkers)
 
 top_list=[]
 
+# stores the vertices in the graph
+vertices = []
 
+# stores the number of vertices in the graph
+vertices_no = 0
+graph = []
+graph_list={}
+
+#Stores edge list values
+edge_list=[]
 
 def process_topology(topology):
     global elements 
@@ -34,6 +43,7 @@ def process_topology(topology):
     global edge_list
     global vertices_no
     global graph
+    global HtmlFile2
 
     branch_element=False
     cycle_element=False
@@ -105,6 +115,7 @@ def process_topology(topology):
 
 
     # Add vertices to the graph
+    refresh_graph_info()
     for i in top_list:
         add_vertex(i)
 
@@ -213,27 +224,94 @@ def process_topology(topology):
             elif B in elements_list or linkers_list:
                 add_edge(A, B, 1)
                 connections=connections+1
+    
     make_edge_list()
 
     
 
-    node_color=[]
+    node_colors=[]
     for element in top_list:
         if element == 'DNA':
-            node_color.append('red')
-        else:
-            node_color.append('blue') 
+            node_colors.append('#012A4A')
+            continue
+        for char in element:
+            if char not in elements: 
+                if char not in linkers and element != 'DNA':
+                    continue
+            else: 
+                if 'A' in element:
+                    node_colors.append('#A9D6E5')
+                    break
+                if 'B' in element:
+                    node_colors.append('#61A5C2')
+                    break
+                if 'C' in element:
+                    node_colors.append('#468FAF')
+                    break
+                if 'D' in element:
+                    node_colors.append('#2A6F97')
+                    break
+                if 'E' in element:
+                    node_colors.append('#014F86')
+                    break
+                if 'F' in element:
+                    node_colors.append('#01497C')
+                    break
+                if 'G' in element:
+                    node_colors.append('013A63')
+                    break
+                if 'H' in element:
+                    node_colors.append('#013A63')
+                    break
+            if element in linkers and element != 'DNA': 
+                node_colors.append('#FFE15C')
 
 
+    node_shapes=[]
+    for element in top_list:
+        if element == 'DNA':
+            node_shapes.append('dot')
+        for char in element:
+            if element=='DNA':
+                continue
+            if char in linkers:
+                node_shapes.append('hexagon')
+            if char in elements:
+                node_shapes.append('dot')
+            else:
+                continue 
+
+    
     #Creates network graph file
     DEL= Network()
 
-    DEL.add_nodes(top_list, color=node_color)
+    DEL.add_nodes(top_list, color=node_colors, shape=node_shapes)
 
-    DEL.add_edges(edge_list, )
+    DEL.add_edges(edge_list)
 
-    DEL.show(topology+".html")
+    #DEL.show("del.html")
 
+    # Save and read graph as HTML file (on Streamlit Sharing)
+    try:
+        path = '/tmp'
+        DEL.save_graph(f'{path}/del.html')
+        HtmlFile2 = open(f'{path}/del.html','r',encoding='utf-8')
+    # Save and read graph as HTML file (locally)
+    except:
+        path = './'
+        DEL.save_graph(f'{path}/del.html')
+        HtmlFile2 = open(f'{path}/del.html','r',encoding='utf-8')
+
+
+def refresh_graph_info():
+    global edge_list
+    global vertices
+    global vertices_no
+    global graph
+    vertices=[]              
+    vertices_no = 0
+    graph = []
+    edge_list=[]
 
 def refresh_vars():
 
@@ -308,6 +386,8 @@ def make_edge_list():
 
 
 
+
+
 #Prints all 
 def print_all(): 
     #Prints list of elements
@@ -346,20 +426,19 @@ def print_all():
 
 
 
-
 # stores the vertices in the graph
-vertices = []
+#vertices = []
 
 # stores the number of vertices in the graph
-vertices_no = 0
-graph = []
+#vertices_no = 0
+#graph = []
 
 #Stores edge list values
-edge_list=[]
+#edge_list=[]
 
 
 
-
+#<><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
 
 # Set header title
@@ -519,6 +598,7 @@ def cyclic_tree_growth():
 
 
 
+
 for letter in seq_list:
     for key,value in list(growth_control.items()):
         if value == 'active':
@@ -638,9 +718,10 @@ except:
 #    process_topology(node)
 
 node_selection= st.sidebar.selectbox('Choose a node to inspect:',(nodes))
-HtmlFile2 = open('G:/DEL Topology Tool (LAB)/Tree Generation/StreamLit Project/html_files/' + str(node_selection) + '.html','r',encoding='utf-8')
+process_topology(str(node_selection))
+#HtmlFile2 = open('G:/DEL Topology Tool (LAB)/Tree Generation/StreamLit Project/html_files/' + str(node_selection) + '.html','r',encoding='utf-8')
 refresh_vars()
-
+ 
 # Load HTML into HTML component for display on Streamlit
 
 with st.expander("Node Inspector Window"):
