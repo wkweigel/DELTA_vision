@@ -637,7 +637,7 @@ make_edge_list()
 
 
 if lit_scale == 'Yes':
-    df=pd.read_csv('/Descriptor_Data.csv')
+    df=pd.read_csv('Descriptor_Data.csv')
 
     temp_dict=df.set_index('Entry').to_dict()
     for k,v in temp_dict.items():
