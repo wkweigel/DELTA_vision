@@ -486,6 +486,8 @@ def make_list(X, print_top_list=True):
     global E_list
     global top_string
     global temp_cyclic_list
+    global branch_span
+    global start_point
 
     top_list=[]
     E_list=[]
@@ -558,22 +560,34 @@ def make_list(X, print_top_list=True):
 
     # A,B,C,D -> !A,B,C!,D
     
-        temp_cyclic_list=[]
-    for IdxA, element in enumerate(top_list): #Outer for-loop controls all cyclic starting points
-        temp_listA=top_list.copy()
-        inital_end_point=IdxA+2
-        if inital_end_point==len(top_list):
+    temp_cyclic_list=[]
+    branch_span=False 
+    #Outer for-loop (IdxA) controls all cyclic starting points
+    for IdxA, element in enumerate(top_list): 
+        temp_listA=top_list.copy() #Copies the toplist as a temp list
+        inital_end_point=IdxA+2 #The minimum number of elements needed to complete a cycle is three, therefore the inital endpoint is started at IdxA+2
+        if inital_end_point==len(top_list): #Checks to see if the initial endpoint had reached the end of the elements list
             break
-        if len(top_list)<3:
+        if len(top_list)<3:#Checks to see if the elements list contains a minimum of 3 terms
             break
-        if '(' in element:
+        if '(' in element:#Checks to see if element is branched and if so, adds a cyclic-branched element in its place
             temp_listA[IdxA]="(!" + element[1] + ")"
         else:
-            temp_listA[IdxA]="!" + element
-        for IdxB in range(inital_end_point, len(top_list)):#Inner for-loop controls all cyclic ending points
+            temp_listA[IdxA]="!" + element #Adds a cyclic element in place of current element
+            start_point=IdxA
+            for e in range(0, ((len(top_list))-1)):
+                if '(' in top_list[start_point+1]:
+                    branch_span=True
+        #Inner for-loop (IdxB) controls all cyclic ending points
+        for IdxB in range(inital_end_point, len(top_list)): #Considers the range between the inital cycle point and the end of elements list (all cycle endpoints necessarily occur in this range)
             temp_listB=temp_listA.copy()
             temp_cycle=''
+            if branch_span is True:
+                branch_span=False
+                continue
             if '(' in top_list[IdxB]: # For handling branch points, ie (X)
+                if branch_span is True:
+                    continue
                 for c in top_list[IdxB]:
                     if c == '(' or c == ')':
                         continue
