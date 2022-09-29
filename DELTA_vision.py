@@ -131,6 +131,7 @@ def process_topology(topology):
         if A =='DNA':
             if '(' in top_list[-2]:
                 DNA_connection=top_list[-3]
+                add_edge(DNA_connection, A, 1)
             else:
                 DNA_connection=top_list[-2]
                 add_edge(DNA_connection, A, 1)
