@@ -602,47 +602,49 @@ def make_list(X, print_top_list=True):
             temp_cyclic_list.append(temp_cycle)
             cyclic_list.append(temp_cycle)
 
-def cyclic_tree_growth():
-    make_list(key)
+def cyclic_tree_growth(node_var):
+    make_list(node_var) #Takes the input acyclic key (ie node) and returns a list of possible cyclic topologies
     for seq in temp_cyclic_list:
-        nodes.append(seq)
-        growth_control[seq]='inactive'
-        branches.append([key,seq])
+        nodes.append(seq) #Adds the cyclic string to the node list
+        growth_control[seq]='inactive' #Adds the cyclic string to the growth control dict as inactive
+        branches.append([node_var,seq]) #Adds a branch between acyclic parent node and the cyclic child node
 
 
 
 
 
 
-for letter in seq_list:
-    for key,value in list(growth_control.items()):
-        if value == 'active':
-            new_node=str(key)+letter
-            nodes.append(new_node)
-            growth_control[new_node]='active'
-            growth_control[key]='inactive'
-            branches.append([key,new_node])
-            if cycle_check == 'Yes':
-                cyclic_tree_growth()
-            
-
-            if key == 'A':
-                continue
-            if key[-1]==')':
-                if cycle_check == 'Yes':
-                    cyclic_tree_growth()
-                continue
+for letter in seq_list: #For each letter in the sequence list, consider all possible branched and cyclic permutations
+    for current_node,value in list(growth_control.items()): #Iteratively goes through the growth control dictionary
+        if value == 'active': #Looks for any active keys (ie nodes) in the growth control dict. For active keys perform the following: 
+            new_node=str(current_node)+letter #Create a new node by appending the existing active node with an unbranched version of the current letter from the seq_list
+            nodes.append(new_node)#Add the new node to the node list
+            growth_control[new_node]='active'#Add the new node to the growth control dict as active
+            growth_control[current_node]='inactive'#Sets the current growth control value to inactive
+            if current_node=='A':
+                continue #Skips the branch addition step for the 'A' node since the (A, AB) branch is initialized in the branch list
             else:
-                new_br_node=str(key) + '(' + letter + ')'
-                nodes.append(new_br_node)
-                growth_control[new_br_node]='active'
-                branches.append([key,new_br_node])
-                if cycle_check == 'Yes':
-                    cyclic_tree_growth()
-        if cycle_check == 'Yes':      
-            for key,value in list(growth_control.items()):
-                if value == 'active':
-                    cyclic_tree_growth()
+                branches.append([current_node,new_node]) #Add a branch (ie edge) between the current key (ie node) and the new_node
+            if cycle_check == 'Yes': 
+                cyclic_tree_growth(current_node) #If cycle_check toggle is 'Yes' execute the cyclic_tree_growth algorithm
+                                    #This algorithm adds nodes and branches for all acceptable cyclic permutations of the current key (ie node) 
+
+
+
+            #if key[-1]==')':
+                #if cycle_check == 'Yes':
+                    #cyclic_tree_growth()
+                #continue
+            if '(' not in current_node:
+                    new_br_node=str(current_node) + '(' + letter + ')'
+                    nodes.append(new_br_node)
+                    growth_control[new_br_node]='active'
+                    branches.append([current_node,new_br_node])
+                    #if cycle_check == 'Yes':
+                        #cyclic_tree_growth()
+                    if cycle_check == 'Yes':      
+                        cyclic_tree_growth(new_br_node)
+                        growth_control[new_br_node]='inactive'
 for i in nodes:
     add_vertex(i)
 
