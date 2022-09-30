@@ -164,7 +164,7 @@ def process_topology(topology):
                     add_edge(A, top_list[B_index-1], 1)
                     connections=connections+1
                     #break
-                top_list[B_index+1]=='DNA'
+                if top_list[B_index+1]=='DNA'
                     add_edge(A, top_list[B_index+1], 1)
                     connections=connections+1
                     #break
