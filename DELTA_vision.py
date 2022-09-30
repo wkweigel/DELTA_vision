@@ -162,6 +162,7 @@ def process_topology(topology):
                     add_edge(A, A, 0)
                 if B_index==A_index:
                     add_edge(A, top_list[B_index-1], 1)
+                    add_edge(A, top_list[B_index+1], 1)
                     connections=connections+1
                     break
 
