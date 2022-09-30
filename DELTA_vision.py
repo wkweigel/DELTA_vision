@@ -156,15 +156,18 @@ def process_topology(topology):
                 B_index=top_list.index(B)
                 if B_index<A_index:
                     continue
-                if bonds <= connections: 
-                    break
+                #if bonds <= connections: 
+                    #break
                 if A == B:
                     add_edge(A, A, 0)
                 if B_index==A_index:
                     add_edge(A, top_list[B_index-1], 1)
+                    connections=connections+1
+                    #break
+                top_list[B_index+1]=='DNA'
                     add_edge(A, top_list[B_index+1], 1)
                     connections=connections+1
-                    break
+                    #break
 
         #Parses cyclic elements
         if '!' in A:
