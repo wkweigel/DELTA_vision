@@ -138,17 +138,16 @@ def process_topology(topology):
             continue
         
         
-        if '(' in A and '!' in A:
-            cycle_list=list(A)
-            for cycle_point in A:
-                if cycle_list[1] == '!':
+        if '(' in A:
+            if '!' in A:
+                if A[1] == '!':
                     Br_cycle_start=A
                     B_C1=True
-                    break
-                if cycle_list[2] == '!':
+                    continue
+                if A[2] == '!':
                     Br_cycle_end=A
                     B_C2=True
-                    break
+                    continue
 
         #Parses branched elements and adds edges
         if '(' in A:
@@ -171,16 +170,16 @@ def process_topology(topology):
             if '(' in A:
                 continue
             else:
-                cycle_list=list(A)
-                for cycle_point in A:
-                    if cycle_list[0] == '!':
-                        cycle_start=A
-                        C1=True
-                        break
-                    if cycle_list[1] == '!':
-                        cycle_end=A
-                        C2=True
-                        break
+                #cycle_list=list(A)
+                #for cycle_point in A:
+                if A[0] == '!':
+                    cycle_start=A
+                    C1=True
+                    continue
+                if A[1] == '!':
+                    cycle_end=A
+                    C2=True
+                    continue
 
         #Adds edges between normal cyclic elements
         if C1 and C2 == True:
