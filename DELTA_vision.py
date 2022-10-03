@@ -343,17 +343,6 @@ edge_list=[]
 
 def Construct_Graph(nodes, edges):
 
-    #These sections are needed for the creation of connectivity matracies.
-    #These are not needed for the streamlit app
-    """nodes=vertices
-    for i in nodes:
-        add_vertex(i)
-    nodes=vertices #WHY MUST THIS BE HERE?
-    for A,B in edges:
-        add_edge(A,B,1)
-    
-
-    make_edge_list()"""
 
     node_colors=[]
     for element in nodes:
