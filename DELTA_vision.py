@@ -2,8 +2,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
-#import networkx as nx
-#from pyvis.network import Network
 import networkx as nx
 import matplotlib.pylab as plt
 import numpy as np
@@ -11,12 +9,323 @@ from pyvis.network import Network
 
 
 
-elements = 'ABCDEFGHIJKLMNOP'
-linkers = "abcdefgh"
-elements_list= list(elements)
-linkers_list= list(linkers)
+#Section Tags: 
+# Make List = mk_lst, Find Edges =  fnd_edg, Tree Growth = tr_grw, Graph Functions = gr_fnc, Streamlit = strm
 
-top_list=[]
+
+#################################
+####### M A K E   L I S T #######
+############ mk_lst #############
+
+# Takes a topology string and parses it into a list of individual topology elements
+def Make_List(top_string, add_dna=True):  
+    global elements 
+    global linkers 
+    global elements_list
+    global linkers_list
+    global top_list
+
+
+    elements = 'ABCDEFGHIJKLMNOP'
+    linkers = "abcdefgh"
+    elements_list= list(elements)
+    linkers_list= list(linkers)
+    top_list=[]
+
+
+    C1_search=True
+    C2_search=False
+    char_behind=None
+    char_ahead=None
+    two_char_behind=None
+    two_char_ahead=None
+    top_string=list(top_string)
+
+    
+    
+    for idx, char in enumerate(top_string):
+
+        #defines peek variables (characters before and after current idx value)
+        if idx in range(1, len(top_string)):
+            char_behind=top_string[idx-1]
+
+        if idx in range(2, len(top_string)):
+            two_char_behind=(top_string[idx-2])+(char_behind)
+
+        if idx in range(0, len(top_string)-1):
+            char_ahead=top_string[idx+1]
+
+        if idx in range(0, len(top_string)-2):
+            two_char_ahead=(char_ahead)+(top_string[idx+2])
+        
+        # For loop skips over syntactical topology characters ("!", "(", and ")")
+        if char =='!':
+            continue
+        if char == '(' or char == ')':
+            continue
+        
+        # The rest of the For loop identies elements based on leading and trailing syntactical characters
+        #Identifies the start of a branched-cyclic element
+        if C1_search is True and two_char_behind =='(!':
+            C1_search=False
+            C2_search=True
+            top_list.append('(!' + char + ')')
+            continue
+        #identifies the start of a cyclic element 
+        elif C1_search is True and char_behind == '!':
+            C1_search=False
+            C2_search=True
+            top_list.append('!' + char)
+            continue
+        #identifies the end of a branched-cyclic element
+        elif C2_search is True and two_char_ahead =='!)':
+            C2_search=False
+            top_list.append('(' + char + '!)')
+            continue
+        #identifies the end of a cyclic element 
+        elif C2_search is True and char_ahead =='!':
+            C2_search=False
+            top_list.append(char + '!')
+            continue
+        #identifies a branching element 
+        elif char_behind =='(' and char_ahead == ')':
+            top_list.append('(' + char + ')')
+            continue
+
+        elif char in linkers or char in elements:
+            top_list.append(char)
+    if add_dna is True:
+        top_list.append("DNA")
+    return(top_list)
+
+
+
+
+##################################
+###### F I N D   E D G E S #######
+############ fnd_edg #############
+
+    #General Function Form: 
+# Uses an outer For loop (loop A) that iteratively classifies elements of the list as either Regular, Cyclic, Branched, or Branched-Cyclic
+# Uses an inner For loop (loop B) to re-iterate over the elements list and identifies edges based on specific criteria
+# If criteria are met, adds edges to list of edges in the form [[A,B],...]
+
+
+edges=[] #Edges stored in list as node pairs. List is appended by calling the Add_Edge Function.
+
+def Add_Edge(E1, E2): #Adds edge for the two input elements (ie nodes)
+    edges.append([E1,E2])
+
+
+def Find_Edges(top_list): #Finds the edges for a list of ordered topology elements
+    #edges=[] #Edges stored in list as node pairs. List is appended by calling the Add_Edge Function.
+    for idxA, A in enumerate(top_list): #Classifies A in outer For loop. 
+        reg_A=False
+        cyc_A=False
+        br_A=False
+        br_cyc_A1=False
+        br_cyc_A2=False
+
+        
+        if len(A)==1: #Flags Regular Elements
+            reg_A=True
+        if len(A)==2: #Flags starting Cyclic elements (ie !A)
+            if A[0]=='!':
+                cyc_start=A
+                cyc_A=True
+        if len(A)==3: #Flags Branched elements
+            if A!='DNA':
+                br_A=True
+                br_point=top_list[idxA-1] # Defines the branch point as the element before the Branch element
+        if len(A)==4: #Flags Branched-Cyclic elements.
+            if A[1]=='!': #If Branched-Cyclic element is the start of a cycle
+                br_cyc_start=A
+                br_cyc_A1=True
+                br_cyc_point=top_list[idxA-1] # Defines the branch point as the element before the Branched-Cyclic element
+            if A[2]== '!': #If Branched-Cyclic element is the end of cycle
+                br_cyc_A2=True
+                br_cyc_end=A
+                br_cyc_point=top_list[idxA-1] # Defines the branch point as the element before the Branched-Cyclic element
+        
+        #Classify B
+        for idxB, B in enumerate(top_list):
+            cyc_B=False
+            br_cyc_B=False
+
+            if A=='DNA' and B=='DNA':
+                if '(' in top_list[(idxB-1)]:
+                    Add_Edge(top_list[idxB-2],B)
+                    break
+                else:
+                    Add_Edge(top_list[idxB-1],B)
+                    break
+
+            if A==B:
+                continue
+
+            if idxB == idxA+1: #If the B is the element following A
+                if reg_A is True: #And if A is a regular element (not branched)
+                    if top_list[idxA+1]=='DNA':#Continue on if the next A element is DNA (since DNA is handled with its own seperate rule above)
+                        continue
+                    else: #Add edge between consecutive elements A and B
+                        Add_Edge(A,B)
+                if cyc_A is True:
+                    if top_list[idxA+1]=='DNA':#Continue on if the next A element is DNA (since DNA is handled with its own seperate rule above)
+                        continue
+                    else: #Add edge between consecutive elements !A and B
+                        Add_Edge(A,B)
+
+            if len(B)==2: #If B is a cyclic element
+                if B[1]=='!': #If B is the end point of a cycle
+                    cyc_end=B #Identify the the end point
+                    cyc_B=True #flag the end point as found
+                
+            if len(B)==4: #If B is a branched cyclic element
+                if B[2] =='!': #If B is the end point of a branched cycle
+                    br_cyc_end=B #Identify the the end point
+                    br_cyc_B=True #flag the end point as found
+
+            if br_A is True: #Resolves the branching edge for a regular branching element
+                if idxB == idxA+1:
+                    Add_Edge(br_point,B)
+
+            if br_cyc_A1 is True: #Resolves the branching edge for a starting branched cyclic element (the cyclic edge is resolved later down)
+                if idxB == idxA+1:
+                    Add_Edge(br_cyc_point,B)
+
+            if br_cyc_A2 is True: #Resolves the branching edge for an ending branched cyclic element (the cyclic edge is resolved later down)
+                if idxB == idxA+1:
+                    if B!='DNA':
+                        Add_Edge(br_cyc_point,B)
+            
+            if cyc_A is True: #Resolves cases involving regular cyclic starting points
+                if cyc_B is True:
+                    Add_Edge(cyc_start,cyc_end)
+                if br_cyc_B is True:
+                    Add_Edge(cyc_start,br_cyc_end)
+            
+            if br_cyc_A1 is True: #Resolves cases involving branched cyclic starting points
+                if cyc_B is True:
+                    Add_Edge(br_cyc_start,cyc_end)
+                if br_cyc_B is True:
+                    Add_Edge(br_cyc_start,br_cyc_end)
+    return(edges)
+
+
+
+###################################
+###### T R E E   G R O W T H ######
+############# tr_grw ##############
+
+nodes=['A']
+growth_control={'A':'inactive', 'A':'active'}
+branches=[['A', 'AB']]
+cycle_check='Yes'
+temp_cyclic_string=''
+
+global cyclic_list
+cyclic_list=[]
+
+
+def Find_NodesAndEdges(A):
+    for letter in A: #For each letter in the sequence list, consider all possible branched and cyclic permutations
+        for current_node,value in list(growth_control.items()): #Iteratively goes through the growth control dictionary
+            if value == 'active': #Looks for any active keys (ie nodes) in the growth control dict. 
+                new_node=str(current_node)+letter #Create a new node by appending the existing active node with an unbranched version of the current letter from the list
+                nodes.append(new_node)#Add the new node to the node list
+                growth_control[new_node]='active'#Add the new node to the growth control dict as active
+                growth_control[current_node]='inactive'#Sets the current growth control value to inactive
+                if current_node=='A':
+                    continue #Skips the branch addition step for the 'A' node since the (A, AB) branch is initialized in the branch list
+                else:
+                    branches.append([current_node,new_node]) #Add a branch (ie edge) between the current key (ie node) and the new_node
+                if cycle_check == 'Yes': 
+                    cyclic_tree_growth(current_node) #If cycle_check toggle is 'Yes' execute the cyclic_tree_growth algorithm
+                                        #This algorithm adds nodes and branches for all acceptable cyclic permutations of the current key (ie node) 
+
+                #if key[-1]==')':
+                    #if cycle_check == 'Yes':
+                        #cyclic_tree_growth()
+                    #continue
+                if '(' not in current_node:
+                        new_br_node=str(current_node) + '(' + letter + ')'
+                        nodes.append(new_br_node)
+                        growth_control[new_br_node]='active'
+                        branches.append([current_node,new_br_node])
+                        #if cycle_check == 'Yes':
+                            #cyclic_tree_growth()
+                        if cycle_check == 'Yes':      
+                            cyclic_tree_growth(new_br_node)
+                            growth_control[new_br_node]='inactive'
+        for current_node,value in list(growth_control.items()): #Iteratively goes through the growth control dictionary
+            if value == 'active':
+                if '!' not in current_node:
+                    cyclic_tree_growth(current_node)
+    return(nodes, branches)
+
+#Finds all valid cyclic permutations of an acyclic topology list or string.
+def Find_Cycles(list):
+
+    global top_list
+    global cyclic_list
+
+    if isinstance(list,str):
+        top_list=Make_List(list, add_dna=False)
+    else:
+        top_list=list
+
+    cyclic_list=[]
+    branch_span=False 
+    #Outer for-loop (IdxA) controls all cyclic starting points
+    for IdxA, element in enumerate(top_list): 
+        temp_listA=top_list.copy() #Copies the toplist as a temp list
+        inital_end_point=IdxA+2 #The minimum number of elements needed to complete a cycle is three, therefore the inital endpoint is started at IdxA+2
+        if inital_end_point==len(top_list): #Checks to see if the initial endpoint had reached the end of the elements list
+            break
+        if len(top_list)<3:#Checks if the elements list contains a minimum of 3 terms
+            break
+        if '(' in element:#Checks if element is branched and if so, adds a cyclic-branched element in its place
+            temp_listA[IdxA]="(!" + element[1] + ")"
+        else:
+            temp_listA[IdxA]="!" + element #Adds a cyclic element in place of current element
+            start_point=IdxA
+            for e in range(0, ((len(top_list))-1)):
+                if '(' in top_list[start_point+1]:
+                    branch_span=True
+        #Inner for-loop (IdxB) controls all cyclic ending points
+        for IdxB in range(inital_end_point, len(top_list)): #Considers the range between the inital cycle point and the end of elements list (all cycle endpoints necessarily occur in this range)
+            temp_listB=temp_listA.copy()
+            temp_cycle=''
+            if branch_span is True:
+                branch_span=False
+                continue
+            if '(' in top_list[IdxB]: # For handling branch points, ie (X)
+                if branch_span is True:
+                    continue
+                for c in top_list[IdxB]:
+                    if c == '(' or c == ')':
+                        continue
+                    else:
+                        temp_listB[IdxB]="(" + c + "!)"
+            else: # For handling regular elements
+                temp_listB[IdxB]=top_list[IdxB] + "!" 
+            for e in temp_listB:
+                temp_cycle=temp_cycle + e
+            cyclic_list.append(temp_cycle)
+    return(cyclic_list)
+
+def cyclic_tree_growth(node_variable):
+    Find_Cycles(node_variable) #Takes the input acyclic key (ie node) and returns a list of possible cyclic topologies
+    for seq in cyclic_list:
+        nodes.append(seq) #Adds the cyclic string to the node list
+        growth_control[seq]='inactive' #Adds the cyclic string to the growth control dict as inactive
+        branches.append([node_variable,seq]) #Adds a branch between acyclic parent node and the cyclic child node
+
+
+###########################################
+###### G R A P H   F U N C T I O N S ######
+################# gr_fnc ##################
+
 
 # stores the vertices in the graph
 vertices = []
@@ -24,214 +333,29 @@ vertices = []
 # stores the number of vertices in the graph
 vertices_no = 0
 graph = []
-graph_list={}
+
+global elements
+global linkers
 
 #Stores edge list values
 edge_list=[]
 
-def process_topology(topology):
-    global elements 
-    global linkers 
-    global elements_list
-    global linkers_list
-    global top_list
-    global add_edge
-    global make_edge_list
-    global print_graph
-    global vertices
-    global edge_list
-    global vertices_no
-    global graph
-    global HtmlFile2
+def Construct_Graph(nodes, edges):
 
-    branch_element=False
-    cycle_element=False
-    cycle_check=False
-    branchcycle_start=False
-    endsearch=False
- 
-    for idx, char in enumerate(topology):
-        #Adds branching cyclic elements
-        if branchcycle_start is True:
-            top_list.append("(!" + char + ")")
-            branchcycle_start=False
-            branch_element=False
-            endsearch=True
-            continue
-        #Adds branching elements
-        if branch_element is True:
-            if char == '!':
-                branchcycle_start=True
-                continue
-            else: 
-                top_list.append("(" + char + ")")
-                branch_char=char
-                cycle_check=True
-                branch_element=False
-                continue
-        #Adds cyclic elements
-        if cycle_element is True and endsearch is False:
-            top_list.append("!" + char)
-            endsearch=True
-            cycle_element=False
-            continue
-        elif cycle_element is True and endsearch is True:
-            top_list[-1]=last_element+"!"
-            endsearch=False
-            cycle_element=False
-            continue
-        #Adds normal elements
-        if char in elements_list: 
-            top_list.append(char)
-        #Adds linker elements 
-        elif char in linkers_list:
-            top_list.append(char)
-        #Detects branch elements
-        elif char == '(':
-            branch_element=True
-        elif char == ')':
-            continue
-        #Detects cyclic elements
-        elif char =='!':
-            cycle_element=True
-            if cycle_element is True and cycle_check is True:
-                top_list[-1]="("+branch_char+"!)"
-                cycle_check=False
-                cycle_element=False
-                continue
-            if cycle_element is True and endsearch is True:
-                top_list[-1]=last_element+"!"
-                endsearch=False
-                cycle_element=False
-                continue
-            if idx==0:
-                continue
-        last_element=top_list[-1]
-
-
-    top_list.append("DNA")
-
-
-
-    # Add vertices to the graph
-    refresh_graph_info()
-    for i in top_list:
+    #These sections are needed for the creation of connectivity matracies.
+    #These are not needed for the streamlit app
+    """nodes=vertices
+    for i in nodes:
         add_vertex(i)
-
-    #Adds edges to elements in top_list
-    C1 = False
-    C2 = False
-    B_C1=False
-    B_C2=False
-    for A in top_list:
-        bonds=1
-        connections=0
-        A_index=top_list.index(A)
-        #Parses branched cyclic elements
-        if A =='DNA':
-            if '(' in top_list[-2]:
-                DNA_connection=top_list[-3]
-                add_edge(DNA_connection, A, 1)
-            else:
-                DNA_connection=top_list[-2]
-                add_edge(DNA_connection, A, 1)
-            continue
-        
-        
-        if '(' in A and '!' in A:
-            cycle_list=list(A)
-            for cycle_point in A:
-                if cycle_list[1] == '!':
-                    Br_cycle_start=A
-                    B_C1=True
-                    break
-                if cycle_list[2] == '!':
-                    Br_cycle_end=A
-                    B_C2=True
-                    break
-
-        #Parses branched elements and adds edges
-        if '(' in A:
-            for B in top_list:
-                B_index=top_list.index(B)
-                if B_index<A_index:
-                    continue
-                if bonds <= connections: 
-                    break
-                if A == B:
-                    add_edge(A, A, 0)
-                if B_index==A_index:
-                    add_edge(A, top_list[B_index-1], 1)
-                    connections=connections+1
-                    break
-
-
-        #Parses cyclic elements
-        if '!' in A:
-            if '(' in A:
-                continue
-            else:
-                cycle_list=list(A)
-                for cycle_point in A:
-                    if cycle_list[0] == '!':
-                        cycle_start=A
-                        C1=True
-                        break
-                    if cycle_list[1] == '!':
-                        cycle_end=A
-                        C2=True
-                        break
-
-        #Adds edges between normal cyclic elements
-        if C1 and C2 == True:
-            add_edge(cycle_start, cycle_end, 1)
-            C1 = False
-            C2 = False
-
-        #Handles the addition of edges between various cases of branches cyclic elements
-        if C1 and B_C2 == True:
-            add_edge(cycle_start, Br_cycle_end, 1)
-            C1 = False
-            B_C2 = False
-        
-        if B_C1 and C2 == True:
-            add_edge(Br_cycle_start, cycle_end, 1)
-            B_C1 = False
-            C2 = False
-        
-        if B_C1 and B_C2 == True:
-            add_edge(Br_cycle_start, Br_cycle_end, 1)
-            B_C1 = False
-            B_C2 = False
-
-        #Adds edges involving normal elements
-        for B in top_list:
-            B_index=top_list.index(B)
-            if B=='DNA':
-                break
-            if B_index<A_index:
-                continue
-            if bonds <= connections: 
-                break
-            if A == B:
-                add_edge(A, A, 0) 
-            elif '(' in B:
-                if '!' in B:
-                    continue
-                else:
-                    add_edge(A, B, 1)
-                    add_edge(A, top_list[B_index+1], 1)
-                    connections=connections+2
-            elif B in elements_list or linkers_list:
-                add_edge(A, B, 1)
-                connections=connections+1
+    nodes=vertices #WHY MUST THIS BE HERE?
+    for A,B in edges:
+        add_edge(A,B,1)
     
-    make_edge_list()
 
-    
+    make_edge_list()"""
 
     node_colors=[]
-    for element in top_list:
+    for element in nodes:
         if element == 'DNA':
             node_colors.append('#012A4A')
             continue
@@ -269,7 +393,7 @@ def process_topology(topology):
 
 
     node_shapes=[]
-    for element in top_list:
+    for element in nodes:
         if element == 'DNA':
             node_shapes.append('dot')
         for char in element:
@@ -281,30 +405,10 @@ def process_topology(topology):
                 node_shapes.append('dot')
             else:
                 continue 
-
-    
-    #Creates network graph file
-    DEL= Network()
-
-    DEL.add_nodes(top_list, color=node_colors, shape=node_shapes)
-
-    DEL.add_edges(edge_list)
-
-    #DEL.show("del.html")
-
-    # Save and read graph as HTML file (on Streamlit Sharing)
-    try:
-        path = '/tmp'
-        DEL.save_graph(f'{path}/del.html')
-        HtmlFile2 = open(f'{path}/del.html','r',encoding='utf-8')
-    # Save and read graph as HTML file (locally)
-    except:
-        path = './'
-        DEL.save_graph(f'{path}/del.html')
-        HtmlFile2 = open(f'{path}/del.html','r',encoding='utf-8')
+    return(node_colors, node_shapes)
 
 
-def refresh_graph_info():
+def refresh_graph_info(): #Refreshes only graph related objects
     global edge_list
     global vertices
     global vertices_no
@@ -314,20 +418,17 @@ def refresh_graph_info():
     graph = []
     edge_list=[]
 
-def refresh_vars():
-
+def refresh_vars(): #Refreshes graph related objects and the current top_list
     global top_list
     global edge_list
     global vertices
     global vertices_no
     global graph
-    
     top_list=[] 
     vertices=[]              
     vertices_no = 0
     graph = []
     edge_list=[]
-
 
 ### Add a vertex to the set of vertices and the graph
 def add_vertex(v):
@@ -384,274 +485,55 @@ def make_edge_list():
         X=vertices[i]
         Y=vertices[j]
         edge_list.append([X,Y])
+    return(edge_list)
 
 
-
-
-
-#Prints all 
-def print_all(): 
-    #Prints list of elements
-    print ("Individual Elements:")
-    print(top_list)
-    print("")
-
-    #Prints detected connections
-    print("Detected Connections:")
-    print_graph()
-    print("")
-
-    #Prints adjacency list
-    print("List Representation: ")
-    print(graph)
-    print("")
-
-    #Prints adjacency matrix
-    print("Matrix Representation: ")
-    for line in graph:
-        print(line)
-    print("")
-
-    #Creates keyed dictionary for elements and connections
-    D = dict(zip(top_list, graph))
-    
-    # Prints resultant dictionary 
-    print ("Dictionary Representation:" )
-    print(str(D))
-    print("")
-
-    #Prints edge list
-    print("Edge List:")
-    print(edge_list)
-
-
-
-
-# stores the vertices in the graph
-#vertices = []
-
-# stores the number of vertices in the graph
-#vertices_no = 0
-#graph = []
-
-#Stores edge list values
-#edge_list=[]
-
-
-
-#<><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-
+###############################
+###### S T R E A M L I T ######
+############# strm ############
 
 # Set header title
 st.title('DEL Topology Visualization')
 
-
+#Define number of DEL elements from streamlit user input
 DEL_size= int(st.sidebar.selectbox('Number of diversity elements:',('3', '4', '5', '6', '7', '8')))
 
+# Toggle consideration of cyclic topologies from streamlit 
 cycle_check = st.sidebar.radio('Consider cyclic topologies?',('Yes', 'No'), index=1)
 
+# Initialization value for scaling node size by literature precedence
 lit_scale='No'
 
+# Option for scaling node size by literature precedence appears if cycle check is "Yes"
 if cycle_check == 'Yes':
     lit_scale= st.sidebar.radio('Scale by literature prevalance?',('Yes', 'No'), index=1)
 
+# Allows user to switch between Dendridic or Hierarchical tree layout.
 view= st.sidebar.radio ('Tree Layout:', ('Dendridic', 'Hierarchical'))
-
-
 
 DE_string='ABCDEFGHIJK'
 DE_selection=DE_string[:DEL_size]
 
 sequence=DE_selection[1:]
 seq_list=list(sequence)
-nodes=['A']
-growth_control={'A':'inactive', 'A':'active'}
-branches=[['A', 'AB']]
 
-temp_cyclic_string=''
-
-global cyclic_list
-cyclic_list=[]
+#teststring='A!BCD(E!)F'
 
 
+nodes, edges=Find_NodesAndEdges(seq_list)
+print(nodes)
+print(edges)
 
+#IS THIS NECCESSARY?
+"""Contruct_Graph(top_list, edges)
 
-
-
-
-def make_list(X, print_top_list=True):  
-    global elements 
-    global linkers 
-    global elements_list
-    global linkers_list
-    global top_list
-    global E_list
-    global top_string
-    global temp_cyclic_list
-    global branch_span
-    global start_point
-
-    top_list=[]
-    E_list=[]
-    C1_search=True
-    C2_search=False
-    char_behind=None
-    char_ahead=None
-    two_char_behind=None
-    two_char_ahead=None
-    char_list=list(X)
-
-    top_string=X
-    
-    for idx, char in enumerate(X):
-        #defines peek variables (characters before and after current idx value)
-        if idx in range(1, len(char_list)):
-            char_behind=char_list[idx-1]
-
-        if idx in range(2, len(char_list)):
-            two_char_behind=(char_list[idx-2])+(char_behind)
-
-        if idx in range(0, len(char_list)-1):
-            char_ahead=char_list[idx+1]
-
-        if idx in range(0, len(char_list)-2):
-            two_char_ahead=(char_ahead)+(char_list[idx+2])
-            
-        if char =='!':
-            continue
-        if char == '(' or char == ')':
-            continue
-        #Identifies the start of a branched-cyclic element
-        if C1_search is True and two_char_behind =='(!':
-            C1_search=False
-            C2_search=True
-            top_list.append('(!' + char + ')')
-            continue
-        #identifies the start of a cyclic element 
-        elif C1_search is True and char_behind == '!':
-            C1_search=False
-            C2_search=True
-            top_list.append('!' + char)
-            continue
-        #identifies the end of a branched-cyclic element
-        elif C2_search is True and two_char_ahead =='!)':
-            C2_search=False
-            top_list.append('(' + char + '!)')
-            continue
-        #identifies the end of a cyclic element 
-        elif C2_search is True and char_ahead =='!':
-            C2_search=False
-            top_list.append(char + '!')
-            continue
-        #identifies a branching element 
-        elif char_behind =='(' and char_ahead == ')':
-            top_list.append('(' + char + ')')
-            continue
-
-        elif char in linkers or char in elements:
-            top_list.append(char)
-
-    
-    E_list.append(top_list)
-    if print_top_list is True:
-        print("Elements:")
-        print(top_list)
-        print("")
-        
-
-
-    # A,B,C,D -> !A,B,C!,D
-    
-    temp_cyclic_list=[]
-    branch_span=False 
-    #Outer for-loop (IdxA) controls all cyclic starting points
-    for IdxA, element in enumerate(top_list): 
-        temp_listA=top_list.copy() #Copies the toplist as a temp list
-        inital_end_point=IdxA+2 #The minimum number of elements needed to complete a cycle is three, therefore the inital endpoint is started at IdxA+2
-        if inital_end_point==len(top_list): #Checks to see if the initial endpoint had reached the end of the elements list
-            break
-        if len(top_list)<3:#Checks to see if the elements list contains a minimum of 3 terms
-            break
-        if '(' in element:#Checks to see if element is branched and if so, adds a cyclic-branched element in its place
-            temp_listA[IdxA]="(!" + element[1] + ")"
-        else:
-            temp_listA[IdxA]="!" + element #Adds a cyclic element in place of current element
-            start_point=IdxA
-            for e in range(0, ((len(top_list))-1)):
-                if '(' in top_list[start_point+1]:
-                    branch_span=True
-        #Inner for-loop (IdxB) controls all cyclic ending points
-        for IdxB in range(inital_end_point, len(top_list)): #Considers the range between the inital cycle point and the end of elements list (all cycle endpoints necessarily occur in this range)
-            temp_listB=temp_listA.copy()
-            temp_cycle=''
-            if branch_span is True:
-                branch_span=False
-                continue
-            if '(' in top_list[IdxB]: # For handling branch points, ie (X)
-                if branch_span is True:
-                    continue
-                for c in top_list[IdxB]:
-                    if c == '(' or c == ')':
-                        continue
-                    else:
-                        temp_listB[IdxB]="(" + c + "!)"
-            else: # For handling regular elements
-                temp_listB[IdxB]=top_list[IdxB] + "!" 
-            for e in temp_listB:
-                temp_cycle=temp_cycle + e
-            temp_cyclic_list.append(temp_cycle)
-            cyclic_list.append(temp_cycle)
-
-def cyclic_tree_growth(node_var):
-    make_list(node_var) #Takes the input acyclic key (ie node) and returns a list of possible cyclic topologies
-    for seq in temp_cyclic_list:
-        nodes.append(seq) #Adds the cyclic string to the node list
-        growth_control[seq]='inactive' #Adds the cyclic string to the growth control dict as inactive
-        branches.append([node_var,seq]) #Adds a branch between acyclic parent node and the cyclic child node
-
-
-
-
-
-
-for letter in seq_list: #For each letter in the sequence list, consider all possible branched and cyclic permutations
-    for current_node,value in list(growth_control.items()): #Iteratively goes through the growth control dictionary
-        if value == 'active': #Looks for any active keys (ie nodes) in the growth control dict. For active keys perform the following: 
-            new_node=str(current_node)+letter #Create a new node by appending the existing active node with an unbranched version of the current letter from the seq_list
-            nodes.append(new_node)#Add the new node to the node list
-            growth_control[new_node]='active'#Add the new node to the growth control dict as active
-            growth_control[current_node]='inactive'#Sets the current growth control value to inactive
-            if current_node=='A':
-                continue #Skips the branch addition step for the 'A' node since the (A, AB) branch is initialized in the branch list
-            else:
-                branches.append([current_node,new_node]) #Add a branch (ie edge) between the current key (ie node) and the new_node
-            if cycle_check == 'Yes': 
-                cyclic_tree_growth(current_node) #If cycle_check toggle is 'Yes' execute the cyclic_tree_growth algorithm
-                                    #This algorithm adds nodes and branches for all acceptable cyclic permutations of the current key (ie node) 
-
-
-
-            #if key[-1]==')':
-                #if cycle_check == 'Yes':
-                    #cyclic_tree_growth()
-                #continue
-            if '(' not in current_node:
-                    new_br_node=str(current_node) + '(' + letter + ')'
-                    nodes.append(new_br_node)
-                    growth_control[new_br_node]='active'
-                    branches.append([current_node,new_br_node])
-                    #if cycle_check == 'Yes':
-                        #cyclic_tree_growth()
-                    if cycle_check == 'Yes':      
-                        cyclic_tree_growth(new_br_node)
-                        growth_control[new_br_node]='inactive'
 for i in nodes:
     add_vertex(i)
 
 for X,Y in branches:
     add_edge(X,Y,1)
 
-make_edge_list()
+make_edge_list()"""
 
 
 if lit_scale == 'Yes':
@@ -686,7 +568,9 @@ if lit_scale == 'Yes':
         else:
             TREE.add_node(node, shape="dot",size=10)
 
-TREE.add_edges(edge_list)
+TREE.add_edges(edges)
+
+#Uncomment this to generate the HTML file with buttons to adjust viewing options
 #TREE.show_buttons()
 
 
@@ -728,18 +612,32 @@ except:
     HtmlFile1 = open(f'{path}/Tree.html','r',encoding='utf-8')
 
 
-#TREE.save_graph('Tree.html')
-#HtmlFile1 = open('G:/DEL Topology Tool (LAB)/Tree Generation/StreamLit Project/Tree.html','r',encoding='utf-8')
-
-#for node in nodes:
-#    process_topology(node)
-refresh_vars()
+edges=[]
 node_selection= st.sidebar.selectbox('Choose a node to inspect:',(nodes))
-process_topology(str(node_selection))
-#HtmlFile2 = open('G:/DEL Topology Tool (LAB)/Tree Generation/StreamLit Project/html_files/' + str(node_selection) + '.html','r',encoding='utf-8')
 
- 
-# Load HTML into HTML component for display on Streamlit
+
+top_nodes=Make_List(str(node_selection),add_dna=True)
+top_edges=Find_Edges(top_nodes)
+colors, shapes= Construct_Graph(top_nodes,top_edges)
+
+DEL= Network()
+
+DEL.add_nodes(top_nodes, color=colors, shape=shapes)
+
+DEL.add_edges(top_edges)
+
+DEL.show("del.html")
+
+# Save and read graph as HTML file (on Streamlit Sharing)
+try:
+    path = '/tmp'
+    DEL.save_graph(f'{path}/del.html')
+    HtmlFile2 = open(f'{path}/del.html','r',encoding='utf-8')
+# Save and read graph as HTML file (locally)
+except:
+    path = './'
+    DEL.save_graph(f'{path}/del.html')
+    HtmlFile2 = open(f'{path}/del.html','r',encoding='utf-8')
 
 with st.expander("Node Inspector Window"):
     st.write("Select a node in the dropdown menu to view its topology")
