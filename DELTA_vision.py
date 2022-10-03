@@ -110,7 +110,6 @@ def Make_List(top_string, add_dna=True):
 # Uses an inner For loop (loop B) to re-iterate over the elements list and identifies edges based on specific criteria
 # If criteria are met, adds edges to list of edges in the form [[A,B],...]
 
-
 edges=[] #Edges stored in list as node pairs. List is appended by calling the Add_Edge Function.
 
 def Add_Edge(E1, E2): #Adds edge for the two input elements (ie nodes)
@@ -118,10 +117,10 @@ def Add_Edge(E1, E2): #Adds edge for the two input elements (ie nodes)
 
 
 def Find_Edges(top_list): #Finds the edges for a list of ordered topology elements
-    #edges=[] #Edges stored in list as node pairs. List is appended by calling the Add_Edge Function.
     for idxA, A in enumerate(top_list): #Classifies A in outer For loop. 
         reg_A=False
-        cyc_A=False
+        cyc_A1=False
+        cyc_A2=False
         br_A=False
         br_cyc_A1=False
         br_cyc_A2=False
@@ -132,7 +131,9 @@ def Find_Edges(top_list): #Finds the edges for a list of ordered topology elemen
         if len(A)==2: #Flags starting Cyclic elements (ie !A)
             if A[0]=='!':
                 cyc_start=A
-                cyc_A=True
+                cyc_A1=True
+            if A[1]=="!":
+                cyc_A2=True
         if len(A)==3: #Flags Branched elements
             if A!='DNA':
                 br_A=True
@@ -169,7 +170,7 @@ def Find_Edges(top_list): #Finds the edges for a list of ordered topology elemen
                         continue
                     else: #Add edge between consecutive elements A and B
                         Add_Edge(A,B)
-                if cyc_A is True:
+                if cyc_A1 or cyc_A2 is True:
                     if top_list[idxA+1]=='DNA':#Continue on if the next A element is DNA (since DNA is handled with its own seperate rule above)
                         continue
                     else: #Add edge between consecutive elements !A and B
@@ -198,7 +199,7 @@ def Find_Edges(top_list): #Finds the edges for a list of ordered topology elemen
                     if B!='DNA':
                         Add_Edge(br_cyc_point,B)
             
-            if cyc_A is True: #Resolves cases involving regular cyclic starting points
+            if cyc_A1 is True: #Resolves cases involving regular cyclic starting points
                 if cyc_B is True:
                     Add_Edge(cyc_start,cyc_end)
                 if br_cyc_B is True:
