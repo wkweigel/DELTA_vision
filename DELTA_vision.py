@@ -527,7 +527,7 @@ if lit_scale == 'Yes':
 
 
 
-TREE= Network(height='1000px',width='800px')
+TREE= Network(height='800px',width='1000px')
 
 #TREE.add_nodes(nodes)
 
