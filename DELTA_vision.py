@@ -514,18 +514,6 @@ nodes, edges=Find_NodesAndEdges(seq_list)
 print(nodes)
 print(edges)
 
-#IS THIS NECCESSARY?
-"""Contruct_Graph(top_list, edges)
-
-for i in nodes:
-    add_vertex(i)
-
-for X,Y in branches:
-    add_edge(X,Y,1)
-
-make_edge_list()"""
-
-
 if lit_scale == 'Yes':
     df=pd.read_csv('Descriptor_Data.csv')
 
