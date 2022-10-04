@@ -625,4 +625,4 @@ with col2:
     components.html(HtmlFile2.read(), width=600, height=800)
 with col1:
     st.header("Topology Tree")
-    components.html(HtmlFile1.read(), width=1002, height=800)
+    components.html(HtmlFile1.read(), width=1002, height=802)
