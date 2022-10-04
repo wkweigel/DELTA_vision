@@ -621,6 +621,6 @@ except:
 
 with st.expander("Node Inspector Window"):
     st.write("Select a node in the dropdown menu to view its topology")
-    components.html(HtmlFile2.read(), width=800, height=800)
+    col2.html(HtmlFile2.read(), width=800, height=800)
 
-col1.components.html(HtmlFile1.read(), width=800, height=800)
+col1.html(HtmlFile1.read(), width=800, height=800)
