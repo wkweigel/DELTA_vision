@@ -618,9 +618,9 @@ except:
     path = './'
     DEL.save_graph(f'{path}/del.html')
     HtmlFile2 = open(f'{path}/del.html','r',encoding='utf-8')
-
-with st.expander("Node Inspector Window"):
-    st.write("Select a node in the dropdown menu to view its topology")
-    col2.html(HtmlFile2.read(), width=800, height=800)
-
-col1.html(HtmlFile1.read(), width=800, height=800)
+with col2:
+    with st.expander("Node Inspector Window"):
+        st.write("Select a node in the dropdown menu to view its topology")
+        components.html(HtmlFile2.read(), width=800, height=800)
+with col1:
+    components.html(HtmlFile1.read(), width=800, height=800)
