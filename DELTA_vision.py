@@ -485,6 +485,8 @@ def make_edge_list():
 # Set header title
 st.title('DEL Topology Visualization')
 
+col1, col2 = st.columns([1, 1])
+
 #Define number of DEL elements from streamlit user input
 DEL_size= int(st.sidebar.selectbox('Number of diversity elements:',('3', '4', '5', '6', '7', '8')))
 
@@ -621,4 +623,4 @@ with st.expander("Node Inspector Window"):
     st.write("Select a node in the dropdown menu to view its topology")
     components.html(HtmlFile2.read(), width=800, height=800)
 
-components.html(HtmlFile1.read(), width=800, height=800)
+col1.components.html(HtmlFile1.read(), width=800, height=800)
