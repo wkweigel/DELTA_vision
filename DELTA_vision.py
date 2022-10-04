@@ -221,7 +221,6 @@ def Find_Edges(top_list): #Finds the edges for a list of ordered topology elemen
 nodes=['A']
 growth_control={'A':'inactive', 'A':'active'}
 branches=[['A', 'AB']]
-cycle_check='Yes'
 temp_cyclic_string=''
 
 global cyclic_list
@@ -261,7 +260,8 @@ def Find_NodesAndEdges(A):
         for current_node,value in list(growth_control.items()): #Iteratively goes through the growth control dictionary
             if value == 'active':
                 if '!' not in current_node:
-                    cyclic_tree_growth(current_node)
+                    if cycle_check == 'Yes':
+                        cyclic_tree_growth(current_node)
     return(nodes, branches)
 
 #Finds all valid cyclic permutations of an acyclic topology list or string.
