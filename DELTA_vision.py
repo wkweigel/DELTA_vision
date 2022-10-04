@@ -487,7 +487,7 @@ st. set_page_config(layout="wide")
 # Set header title
 st.title('DEL Topology Visualization')
 
-col1, col2 = st.columns([1, 1])
+col1, col2 = st.columns([2, 1])
 
 #Define number of DEL elements from streamlit user input
 DEL_size= int(st.sidebar.selectbox('Number of diversity elements:',('3', '4', '5', '6', '7', '8')))
