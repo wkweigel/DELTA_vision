@@ -622,7 +622,9 @@ except:
     HtmlFile2 = open(f'{path}/del.html','r',encoding='utf-8')
 with col2:
     st.header("Topology Explorer")
-    components.html(HtmlFile2.read(), width=600, height=800)
+    with st.container():
+        components.html(HtmlFile2.read(), use_container_width=True, height=800)
 with col1:
     st.header("Topology Tree")
-    components.html(HtmlFile1.read(), width=1002, height=805)
+    with st.container():
+        components.html(HtmlFile1.read(), use_container_width=True, height=805)
