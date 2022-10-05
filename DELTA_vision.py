@@ -623,8 +623,8 @@ except:
 with col2:
     st.header("Topology Explorer")
     with st.container():
-        components.html(HtmlFile2.read(), use_container_width=True, height=800)
+        components.html(HtmlFile2.read(), height=800)
 with col1:
     st.header("Topology Tree")
     with st.container():
-        components.html(HtmlFile1.read(), use_container_width=True, height=805)
+        components.html(HtmlFile1.read(), height=805)
