@@ -3,4 +3,3 @@ networkx
 matplotlib
 numpy
 pyvis
-PIL
