@@ -818,7 +818,7 @@ try:
     path = '/tmp'
     DEL.save_graph(f'{path}/del.html')
     HtmlFile2 = open(f'{path}/del.html','r',encoding='utf-8')
-    GuidePath=Image.open(f'{path}/DELTA_Guide.png')
+  
 # Save and read graph as HTML file (locally)
 except:
     path = './'
@@ -832,5 +832,7 @@ with col1:
     st.header("Topology Tree")
     with st.container():
         components.html(HtmlFile1.read(), height=805)
+
+GuidePath=Image.open('DELTA_Guide.png')
 st.header('About DELTA')
 st.image(GuidePath)
