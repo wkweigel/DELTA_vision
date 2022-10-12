@@ -1,4 +1,5 @@
 # Import dependencies
+#from curses.ascii import isalpha, islower
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
@@ -10,7 +11,7 @@ from pyvis.network import Network
 
 
 #Section Tags: 
-# Make List = mk_lst, Find Edges =  fnd_edg, Tree Growth = tr_grw, Graph Functions = gr_fnc, Streamlit = strm
+# Make List = mk_lst, Find Edges =  fnd_edg, Find Linkers = fnd_lnk, Tree Growth = tr_grw, Graph Functions = gr_fnc, Streamlit = strm
 
 
 #################################
@@ -214,6 +215,155 @@ def Find_Edges(top_list): #Finds the edges for a list of ordered topology elemen
 
 
 
+
+#####################################
+###### F I N D   L I N K E R S ######
+############# fnd_lnk ###############
+
+def Make_Bond_Dict(edges):
+      
+    bond_dict={}
+
+    for A, B in edges:
+        if A in bond_dict:
+            bond_dict[A]+=1
+        if A not in bond_dict:
+            bond_dict[A]=1
+        if B in bond_dict:
+            bond_dict[B]+=1
+        if B not in bond_dict:
+            bond_dict[B]=1
+    return(bond_dict)
+
+def Return_String(list):
+    string=''
+    for element in list:
+        if element=='DNA':
+            break
+        else:
+            string = string + element
+    return(string)
+
+
+def Make_Linker_Variant(source_list, replacement_element, replacement_index):
+    temp_list=source_list.copy()
+    temp_list[replacement_index]=replacement_element.lower()
+    temp_string=Return_String(temp_list)
+    return(temp_string, temp_list)
+
+
+def Terminal_Variant(list):
+    if '(' not in list[-1]: #Checks to see if the element preceeding the DNA element is branched
+                    temp_list_a=list.copy() 
+                    temp_list_a[-1]=list[-1].lower()
+                    temp_string_a=Return_String(temp_list_a)
+                    linker_list.append(temp_string_a)
+
+# Checks if a given element (and corresonding index) in a given list is a linker
+def Linker_Search(current_list, search_element, search_idx):
+    double_skip=False
+    single_skip=False
+    end_search=False
+
+    # Checks if search element has more than one edge 
+    # If it does, replace the element with a lowercase variant
+    # Creates string from list and adds string to linkers list
+    if bonds.get(search_element)>1: 
+        var_str, var_list=Make_Linker_Variant(current_list, search_element, search_idx) #creates a variant with the current element replaced with a lowercase char
+        linker_list.append(var_str)# Adds variant to list of linkers
+        
+
+    # Determines if the next element is branched (used to determine where subsequent starting index should be)
+    # Breaks loop if there is an IndexError (ie the loop is on the last element of the list)  
+        try: 
+            if '(' in current_list[search_idx+1]:
+                double_skip=True
+            else:
+                single_skip=True
+        except IndexError:
+            end_search=True
+            
+            
+
+    # Sets the approriate subsequent start index
+    # If index error is thrown, flag end_search as true
+        if double_skip is True: #Defines new index start position or flags the end_search if index does not exist
+            try:
+                start_idx=search_idx+3
+                skip_num=3
+            except IndexError:
+                end_search=True
+                
+        if single_skip is True: #Defines new index start position or flags the end_search if index does not exist
+            try:
+                start_idx=search_idx+2
+                skip_num=2
+            except IndexError:
+                end_search=True
+        
+        if end_search is True:
+            start_idx=0
+            skip_num=0
+
+        
+        return(var_list, start_idx, end_search, skip_num)
+
+    
+
+def Find_Linkers(list):
+    global top_list_dna
+    global top_list
+    global double_skip
+    global single_skip
+    global bonds
+    global linker_list
+
+    
+    linker_list=[]
+    if isinstance(list,str):
+            top_list_dna=Make_List(list, add_dna=True)
+    else:
+        top_list_dna=list
+    
+    #Counts bonds (ie connections) with DNA as an element
+    edges=Find_Edges(top_list_dna)
+    bonds=Make_Bond_Dict(edges)
+
+    #Creates new list without DNA element 
+    top_list_dna.pop(-1)
+
+    # Main (ie outer) for loop
+    # The secondary (ie inner) for loop considers all accetable linker permutations that come after the current iteration in the main loop
+    for main_idx, main_element in enumerate(top_list):
+
+        if '(' in main_element: #Skips branch elements
+            continue
+
+        if bonds.get(main_element)==1: #Skips cases where the "A" element has only one connection (ie "A" is not part of a cyclic connection)
+            continue
+
+        # Creates parent_list (only a single linker element) that is used in the inner for loop
+        parent_list, initial_idx, end_search, skip_num = Linker_Search(top_list, main_element, main_idx)
+
+        if end_search is True: # Exits loop if end_search is returned as true
+            break
+
+    # Secondary for loop does not have definite structure
+    # Iteration of this loop is controlled by index manipulation
+        for parent_idx, parent_element in enumerate(parent_list[initial_idx:], start=initial_idx):
+            child_list, child_idx, end_search, skip_num = Linker_Search(parent_list, parent_element, parent_idx)
+            if end_search is True:
+                break
+            if initial_idx != len(top_list)-1:
+                if parent_idx != len(top_list)-2:
+                    Terminal_Variant(child_list)
+
+            initial_idx=initial_idx+skip_num
+    return(linker_list)
+
+        
+
+
 ###################################
 ###### T R E E   G R O W T H ######
 ############# tr_grw ##############
@@ -230,6 +380,7 @@ cyclic_list=[]
 def Find_NodesAndEdges(A):
     for letter in A: #For each letter in the sequence list, consider all possible branched and cyclic permutations
         for current_node,value in list(growth_control.items()): #Iteratively goes through the growth control dictionary
+            
             if value == 'active': #Looks for any active keys (ie nodes) in the growth control dict. 
                 new_node=str(current_node)+letter #Create a new node by appending the existing active node with an unbranched version of the current letter from the list
                 nodes.append(new_node)#Add the new node to the node list
@@ -240,28 +391,42 @@ def Find_NodesAndEdges(A):
                 else:
                     branches.append([current_node,new_node]) #Add a branch (ie edge) between the current key (ie node) and the new_node
                 if cycle_check == 'Yes': 
-                    cyclic_tree_growth(current_node) #If cycle_check toggle is 'Yes' execute the cyclic_tree_growth algorithm
+                    Cyclic_Tree_Growth(current_node) #If cycle_check toggle (streamlit) is 'Yes' execute the Cyclic_Tree_Growth algorithm
                                         #This algorithm adds nodes and branches for all acceptable cyclic permutations of the current key (ie node) 
+                if linker_check == 'Yes': 
+                    Linker_Tree_Growth(current_node) #If linker_check toggle (streamlit) is 'Yes' execute the Linker_Tree_Growth algorithm
+                                        #This algorithm adds nodes and branches for all acceptable linker permutations of the current key (ie node)
 
                 #if key[-1]==')':
                     #if cycle_check == 'Yes':
-                        #cyclic_tree_growth()
+                        #Cyclic_Tree_Growth()
                     #continue
-                if '(' not in current_node:
+                if '(' not in current_node: #Adds current letter to current node as branch element
                         new_br_node=str(current_node) + '(' + letter + ')'
                         nodes.append(new_br_node)
                         growth_control[new_br_node]='active'
                         branches.append([current_node,new_br_node])
                         #if cycle_check == 'Yes':
-                            #cyclic_tree_growth()
+                            #Cyclic_Tree_Growth()
                         if cycle_check == 'Yes':      
-                            cyclic_tree_growth(new_br_node)
+                            Cyclic_Tree_Growth(new_br_node)
                             growth_control[new_br_node]='inactive'
+                        if linker_check == 'Yes':      
+                            Linker_Tree_Growth(new_br_node)
+                            growth_control[new_br_node]='inactive'
+                        
+        
         for current_node,value in list(growth_control.items()): #Iteratively goes through the growth control dictionary
             if value == 'active':
-                if '!' not in current_node:
+                if '!' not in current_node: #Adds cyclic permutations for final nodes in the growth dict that are both acyclic and active. 
                     if cycle_check == 'Yes':
-                        cyclic_tree_growth(current_node)
+                        Cyclic_Tree_Growth(current_node)
+                if current_node.isupper(): #Adds linker permutations for final nodes in the growth dict that are both all uppercase and active. 
+                    if linker_check == 'Yes':
+                        Linker_Tree_Growth(current_node)
+
+
+                    
     return(nodes, branches)
 
 #Finds all valid cyclic permutations of an acyclic topology list or string.
@@ -315,12 +480,24 @@ def Find_Cycles(list):
             cyclic_list.append(temp_cycle)
     return(cyclic_list)
 
-def cyclic_tree_growth(node_variable):
+def Cyclic_Tree_Growth(node_variable):
     Find_Cycles(node_variable) #Takes the input acyclic key (ie node) and returns a list of possible cyclic topologies
     for seq in cyclic_list:
         nodes.append(seq) #Adds the cyclic string to the node list
         growth_control[seq]='inactive' #Adds the cyclic string to the growth control dict as inactive
         branches.append([node_variable,seq]) #Adds a branch between acyclic parent node and the cyclic child node
+
+def Linker_Tree_Growth(node_variable):
+    linkers=Find_Linkers(node_variable)
+    for linker in linkers:
+        nodes.append(linker) #Adds the linker string to the node list
+        growth_control[linker]='inactive' #Adds the linker string to the growth control dict as inactive
+        branches.append([node_variable,linker]) #Adds a branch between parent node and the linker child node
+
+
+
+
+
 
 
 ###########################################
@@ -379,7 +556,7 @@ def Construct_Graph(nodes, edges):
                     node_colors.append('#013A63')
                     break
             if element in linkers and element != 'DNA': 
-                node_colors.append('#FFE15C')
+                node_colors.append('#F88379')
 
 
     node_shapes=[]
@@ -492,8 +669,11 @@ col1, col2 = st.columns([2, 1], gap="small")
 #Define number of DEL elements from streamlit user input
 DEL_size= int(st.sidebar.selectbox('Number of diversity elements:',('3', '4', '5', '6', '7', '8')))
 
-# Toggle consideration of cyclic topologies from streamlit 
+# Toggle consideration of cyclic topologies from streamlit user input
 cycle_check = st.sidebar.radio('Consider cyclic topologies?',('Yes', 'No'), index=1)
+
+# Toggle display of linker permutations from streamlit user input
+linker_check = st.sidebar.radio('Show linker permutations?', ('Yes', 'No'), index=1)
 
 # Initialization value for scaling node size by literature precedence
 lit_scale='No'
@@ -533,18 +713,34 @@ TREE= Network(height='800px',width='1000px')
 
 if lit_scale == 'No':
     for node in nodes:
+        if node.isupper() is not True:
+            if '!' in node:
+                TREE.add_node(node, shape="square", color="#F88379")
+            else:
+                TREE.add_node(node, shape="hexagon", color="#F88379")
         if '!' in node:
             TREE.add_node(node, shape="square", color="#fff9ae")
         else:
             TREE.add_node(node, shape="dot")
+        
 
 if lit_scale == 'Yes':
     for node in nodes:
         if node in occurance_dict.keys():
+            if node.isupper() is not True:
+                if '!' in node:
+                    TREE.add_node(node, shape="square", color="#c6a8e0", size=occurance_dict.get(node)*10)
+                else:
+                    TREE.add_node(node, shape="hexagon", color="#c6a8e0", size=occurance_dict.get(node)*10)
             if '!' in node:
                 TREE.add_node(node, shape="square", color="#c6a8e0", size=occurance_dict.get(node)*10)
             else:
                 TREE.add_node(node, shape="dot", color="#c6a8e0", size=occurance_dict.get(node)*10)
+        elif node.isupper() is not True:
+            if '!' in node:
+                TREE.add_node(node, shape="square", color="#F88379", size=10)
+            else:
+                TREE.add_node(node, shape="hexagon", color="#F88379", size=10)
         elif '!' in node:
                 TREE.add_node(node, shape="square", color="#fff9ae", size=10)
         else:
