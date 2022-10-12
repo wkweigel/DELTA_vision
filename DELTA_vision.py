@@ -351,7 +351,10 @@ def Find_Linkers(list):
     # Secondary for loop does not have definite structure
     # Iteration of this loop is controlled by index manipulation
         for parent_idx, parent_element in enumerate(parent_list[initial_idx:], start=initial_idx):
-            child_list, child_idx, end_search, skip_num = Linker_Search(parent_list, parent_element, parent_idx)
+            try:
+                child_list, child_idx, end_search, skip_num = Linker_Search(parent_list, parent_element, parent_idx)
+            except TypeError:
+                pass
             if end_search is True:
                 break
             if initial_idx != len(top_list)-1:
