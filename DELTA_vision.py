@@ -418,9 +418,9 @@ def Find_NodesAndEdges(A):
                         if cycle_check == 'Yes':      
                             Cyclic_Tree_Growth(new_br_node)
                             growth_control[new_br_node]='inactive'
-                        if linker_check == 'Yes':      
-                            Linker_Tree_Growth(new_br_node)
-                            growth_control[new_br_node]='inactive'
+                        #if linker_check == 'Yes':      
+                            #Linker_Tree_Growth(new_br_node)
+                            #growth_control[new_br_node]='inactive'
                         
         
         for current_node,value in list(growth_control.items()): #Iteratively goes through the growth control dictionary
