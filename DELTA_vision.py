@@ -341,6 +341,9 @@ def Find_Linkers(list):
 
         if bonds.get(main_element)==1: #Skips cases where the "A" element has only one connection (ie "A" is not part of a cyclic connection)
             continue
+            
+        if main_element=='A':
+            continue
 
         # Creates parent_list (only a single linker element) that is used in the inner for loop
         parent_list, initial_idx, end_search, skip_num = Linker_Search(top_list, main_element, main_idx)
