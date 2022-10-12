@@ -7,6 +7,7 @@ import networkx as nx
 import matplotlib.pylab as plt
 import numpy as np
 from pyvis.network import Network
+from PIL import Image
 
 
 
