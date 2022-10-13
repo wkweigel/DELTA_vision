@@ -428,9 +428,9 @@ def Find_NodesAndEdges(A):
                 if '!' not in current_node: #Adds cyclic permutations for final nodes in the growth dict that are both acyclic and active. 
                     if cycle_check == 'Yes':
                         Cyclic_Tree_Growth(current_node)
-                #if current_node.isupper(): #Adds linker permutations for final nodes in the growth dict that are both all uppercase and active. 
-                    #if linker_check == 'Yes':
-                        #Linker_Tree_Growth(current_node)
+                if current_node.isupper(): #Adds linker permutations for final nodes in the growth dict that are both all uppercase and active. 
+                    if linker_check == 'Yes':
+                        Linker_Tree_Growth(current_node)
 
 
                     
