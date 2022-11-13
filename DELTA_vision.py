@@ -496,7 +496,16 @@ def Cyclic_Tree_Growth(node_variable):
 
 def Linker_Tree_Growth(node_variable):
     linkers=Find_Linkers(node_variable)
-    for linker in linkers:
+    possible_linkers='abcdefghijk'
+    for linker in linkers: #This loop checks for invalid linkers (linkers enclosed in "( )") and omits them from the tree growth algorithm 
+        linker_violation=False
+        if linker[-1]==")":
+            check_node=Make_List(linker, add_dna=False)
+            for let in check_node[-1]:
+                if let in possible_linkers:
+                    linker_violation=True
+        if linker_violation is True:
+            continue
         nodes.append(linker) #Adds the linker string to the node list
         growth_control[linker]='inactive' #Adds the linker string to the growth control dict as inactive
         branches.append([node_variable,linker]) #Adds a branch between parent node and the linker child node
