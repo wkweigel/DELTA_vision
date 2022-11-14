@@ -419,7 +419,7 @@ def Find_NodesAndEdges(A):
                     if linker_check == 'Yes':      
                         Linker_Tree_Growth(new_br_node) 
                         growth_control[new_br_node]='active'
-                if '(' in current_node:
+                if '(' in current_node:#For nodes with existing branches, Adds current letter to current node as branch element if the current node has an unbranched final element
                     templist=Make_List(current_node,add_dna=False)
                     if '(' not in templist[-1]:
                         new_br_node=str(current_node) + '(' + letter + ')'
