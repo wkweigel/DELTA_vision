@@ -408,32 +408,30 @@ def Find_NodesAndEdges(A):
                     #if cycle_check == 'Yes':
                         #Cyclic_Tree_Growth()
                     #continue
-                if '(' not in current_node: #Adds current letter to current node as branch element
+                if '(' not in current_node: #Adds current letter to current node as branch element if the current node has no banching elements
+                    new_br_node=str(current_node) + '(' + letter + ')'
+                    nodes.append(new_br_node)
+                    growth_control[new_br_node]='active'
+                    branches.append([current_node,new_br_node])
+                    if cycle_check == 'Yes':      
+                        Cyclic_Tree_Growth(new_br_node)
+                        growth_control[new_br_node]='active'
+                    if linker_check == 'Yes':      
+                        Linker_Tree_Growth(new_br_node) 
+                        growth_control[new_br_node]='active'
+                if '(' in current_node:
+                    templist=Make_List(current_node,add_dna=False)
+                    if '(' not in templist[-1]:
                         new_br_node=str(current_node) + '(' + letter + ')'
                         nodes.append(new_br_node)
                         growth_control[new_br_node]='active'
                         branches.append([current_node,new_br_node])
-                        #if cycle_check == 'Yes':
-                            #Cyclic_Tree_Growth()
                         if cycle_check == 'Yes':      
                             Cyclic_Tree_Growth(new_br_node)
                             growth_control[new_br_node]='active'
                         if linker_check == 'Yes':      
                             Linker_Tree_Growth(new_br_node)
                             growth_control[new_br_node]='active'
-                  if '(' in current_node:
-                        templist=Make_List(current_node,add_dna=False)
-                        if '(' not in templist[-1]:
-                            new_br_node=str(current_node) + '(' + letter + ')'
-                            nodes.append(new_br_node)
-                            growth_control[new_br_node]='active'
-                            branches.append([current_node,new_br_node])
-                            if cycle_check == 'Yes':      
-                                Cyclic_Tree_Growth(new_br_node)
-                                growth_control[new_br_node]='active'
-                            if linker_check == 'Yes':      
-                                Linker_Tree_Growth(new_br_node)
-                                growth_control[new_br_node]='active'
                         
         
         for current_node,value in list(growth_control.items()): #Iteratively goes through the growth control dictionary
