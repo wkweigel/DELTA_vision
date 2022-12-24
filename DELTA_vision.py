@@ -107,10 +107,12 @@ def Make_List(top_string, add_dna=True):
 ###### F I N D   E D G E S #######
 ############ fnd_edg #############
 
-    #General Function Form: 
-# Uses an outer For loop (loop A) that iteratively classifies elements of the list as either Regular, Cyclic, Branched, or Branched-Cyclic
-# Uses an inner For loop (loop B) to re-iterate over the elements list and identifies edges based on specific criteria
-# If criteria are met, adds edges to list of edges in the form [[A,B],...]
+"""
+General Function Form: 
+Uses an outer For loop (loop A) that iteratively classifies elements of the list as either Regular, Cyclic, Branched, or Branched-Cyclic
+Uses an inner For loop (loop B) to re-iterate over the elements list and identifies edges based on specific criteria
+If criteria are met, adds edges to list of edges in the form [[A,B],...]
+"""
 
 edges=[] #Edges stored in list as node pairs. List is appended by calling the Add_Edge Function.
 
@@ -272,10 +274,17 @@ def Linker_Search(current_list, search_element, search_idx):
     if bonds.get(search_element)>1: 
         var_str, var_list=Make_Linker_Variant(current_list, search_element, search_idx) #creates a variant with the current element replaced with a lowercase char
         linker_list.append(var_str)# Adds variant to list of linkers
+        if bonds.get(search_element)==2:
+            if bonds.get(search_element)!=3:  
+                var_str, var_list=Make_Linker_Variant(current_list,search_element, search_idx)
+                divalent_list.append(var_str)
+        if bonds.get(search_element)==3:
+            var_str, var_list=Make_Linker_Variant(current_list, search_element, search_idx)
+            trivalent_list.append(var_str)
         
 
-    # Determines if the next element is branched (used to determine where subsequent starting index should be)
-    # Breaks loop if there is an IndexError (ie the loop is on the last element of the list)  
+        # Determines if the next element is branched (used to determine where subsequent starting index should be)
+        # Breaks loop if there is an IndexError (ie the loop is on the last element of the list)  
         try: 
             if '(' in current_list[search_idx+1]:
                 double_skip=True
@@ -286,8 +295,8 @@ def Linker_Search(current_list, search_element, search_idx):
             
             
 
-    # Sets the approriate subsequent start index
-    # If index error is thrown, flag end_search as true
+        # Sets the approriate subsequent start index
+        # If index error is thrown, flag end_search as true
         if double_skip is True: #Defines new index start position or flags the end_search if index does not exist
             try:
                 start_idx=search_idx+3
@@ -318,15 +327,20 @@ def Find_Linkers(list):
     global single_skip
     global bonds
     global linker_list
-
+    global divalent_list
+    global trivalent_list
     
     linker_list=[]
+    divalent_list=[]
+    trivalent_list=[]
+
+    #If the Find_Linkers function is called with a string, convert the string to a list 
     if isinstance(list,str):
             top_list_dna=Make_List(list, add_dna=True)
     else:
         top_list_dna=list
     
-    #Counts bonds (ie connections) with DNA as an element
+    #Counts bonds (ie connections) where DNA is included as an element
     edges=Find_Edges(top_list_dna)
     bonds=Make_Bond_Dict(edges)
 
@@ -337,7 +351,7 @@ def Find_Linkers(list):
     # The secondary (ie inner) for loop considers all accetable linker permutations that come after the current iteration in the main loop
     for main_idx, main_element in enumerate(top_list):
 
-        if '(' in main_element: #Skips branch elements
+        if '(' in main_element: #Skips branch elements. These by definition cannot be linkers.
             continue
 
         if bonds.get(main_element)==1: #Skips cases where the "A" element has only one connection (ie "A" is not part of a cyclic connection)
@@ -366,7 +380,8 @@ def Find_Linkers(list):
                     Terminal_Variant(child_list)
 
             initial_idx=initial_idx+skip_num
-    return(linker_list)
+    linker_dict={'All':linker_list, 'Divalent':divalent_list, 'Trivalent':trivalent_list}
+    return(linker_dict)
 
         
 
@@ -506,7 +521,13 @@ def Cyclic_Tree_Growth(node_variable):
         branches.append([node_variable,seq]) #Adds a branch between acyclic parent node and the cyclic child node
 
 def Linker_Tree_Growth(node_variable):
-    linkers=Find_Linkers(node_variable)
+    linker_dict=Find_Linkers(node_variable)
+    if linker_group=='All':
+        linkers=linker_dict['All']
+    if linker_group=='Divalent':
+        linkers=linker_dict['Divalent']
+    if linker_group=='Trivalent':
+        linkers=linker_dict['Trivalent']
     possible_linkers='abcdefghijk'
     for linker in linkers: #This loop checks for invalid linkers (linkers enclosed in "( )") and omits them from the tree growth algorithm 
         linker_violation=False
@@ -686,7 +707,7 @@ def make_edge_list():
 ###### S T R E A M L I T ######
 ############# strm ############
 
-st. set_page_config(layout="wide")
+st.set_page_config(layout="wide")
 
 # Set header title
 st.title('DEL Topology Visualization')
@@ -702,12 +723,20 @@ cycle_check = st.sidebar.radio('Consider cyclic topologies?',('Yes', 'No'), inde
 # Toggle display of linker permutations from streamlit user input
 linker_check = st.sidebar.radio('Show linker permutations?', ('Yes', 'No'), index=1)
 
+linker_check='No'
+
+if linker_check == 'Yes':
+    linker_group=st.sidebar.radio('Select linker type:', ('All', 'Divalent', 'Trivalent'), index=0)
+
+
 # Initialization value for scaling node size by literature precedence
 lit_scale='No'
 
 # Option for scaling node size by literature precedence appears if cycle check is "Yes"
 if cycle_check == 'Yes':
     lit_scale= st.sidebar.radio('Scale by literature prevalance?',('Yes', 'No'), index=1)
+
+
 
 # Allows user to switch between Dendridic or Hierarchical tree layout.
 view= st.sidebar.radio ('Tree Layout:', ('Dendridic', 'Hierarchical'))
@@ -719,11 +748,18 @@ sequence=DE_selection[1:]
 seq_list=list(sequence)
 
 #teststring='A!BCD(E!)F'
-
+#testseq=['B', 'C', 'D', 'E', 'F']
 
 nodes, edges=Find_NodesAndEdges(seq_list)
-print(nodes)
-print(edges)
+
+sorted_nodes= sorted(nodes, key= lambda x: x.count('('))
+
+
+#print(nodes)
+#print(sorted_nodes)
+#print(edges)
+#print(linkers)
+
 
 if lit_scale == 'Yes':
     df=pd.read_csv('Descriptor_Data.csv')
