@@ -707,7 +707,7 @@ def make_edge_list():
 ###### S T R E A M L I T ######
 ############# strm ############
 
-st.set_page_config(layout="wide")
+st.set_page_config(page_title=None, page_icon=None, layout="wide", initial_sidebar_state="auto", menu_items=None)
 
 # Set header title
 st.title('DEL Topology Visualization')
