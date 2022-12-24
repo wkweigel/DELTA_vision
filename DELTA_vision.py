@@ -723,7 +723,7 @@ cycle_check = st.sidebar.radio('Consider cyclic topologies?',('Yes', 'No'), inde
 # Toggle display of linker permutations from streamlit user input
 linker_check = st.sidebar.radio('Show linker permutations?', ('Yes', 'No'), index=1)
 
-linker_check='No'
+linker_group='All'
 
 if linker_check == 'Yes':
     linker_group=st.sidebar.radio('Select linker type:', ('All', 'Divalent', 'Trivalent'), index=0)
