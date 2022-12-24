@@ -707,7 +707,7 @@ def make_edge_list():
 ###### S T R E A M L I T ######
 ############# strm ############
 
-st.set_page_config(page_title=None, page_icon=None, layout="wide", initial_sidebar_state="auto", menu_items=None)
+st. set_page_config(layout="wide")
 
 # Set header title
 st.title('DEL Topology Visualization')
@@ -723,20 +723,12 @@ cycle_check = st.sidebar.radio('Consider cyclic topologies?',('Yes', 'No'), inde
 # Toggle display of linker permutations from streamlit user input
 linker_check = st.sidebar.radio('Show linker permutations?', ('Yes', 'No'), index=1)
 
-linker_group='All'
-
-if linker_check == 'Yes':
-    linker_group=st.sidebar.radio('Select linker type:', ('All', 'Divalent', 'Trivalent'), index=0)
-
-
 # Initialization value for scaling node size by literature precedence
 lit_scale='No'
 
 # Option for scaling node size by literature precedence appears if cycle check is "Yes"
 if cycle_check == 'Yes':
     lit_scale= st.sidebar.radio('Scale by literature prevalance?',('Yes', 'No'), index=1)
-
-
 
 # Allows user to switch between Dendridic or Hierarchical tree layout.
 view= st.sidebar.radio ('Tree Layout:', ('Dendridic', 'Hierarchical'))
