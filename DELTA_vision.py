@@ -1,6 +1,7 @@
 # Import dependencies
 #from curses.ascii import isalpha, islower
 import streamlit as st
+st.set_page_config(layout="wide")
 import streamlit.components.v1 as components
 import pandas as pd
 import networkx as nx
@@ -707,7 +708,7 @@ def make_edge_list():
 ###### S T R E A M L I T ######
 ############# strm ############
 
-st.set_page_config(layout="wide")
+
 
 # Set header title
 st.title('DEL Topology Visualization')
