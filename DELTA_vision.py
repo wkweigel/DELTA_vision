@@ -276,9 +276,9 @@ def Linker_Search(current_list, search_element, search_idx):
         var_str, var_list=Make_Linker_Variant(current_list, search_element, search_idx) #creates a variant with the current element replaced with a lowercase char
         linker_list.append(var_str)# Adds variant to list of linkers
         if bonds.get(search_element)==2:
-            if bonds.get(search_element)!=3:  
-                var_str, var_list=Make_Linker_Variant(current_list,search_element, search_idx)
-                divalent_list.append(var_str)
+            #if bonds.get(search_element)!=3:  
+            var_str, var_list=Make_Linker_Variant(current_list,search_element, search_idx)
+            divalent_list.append(var_str)
         if bonds.get(search_element)==3:
             var_str, var_list=Make_Linker_Variant(current_list, search_element, search_idx)
             trivalent_list.append(var_str)
