@@ -724,7 +724,7 @@ cycle_check = st.sidebar.radio('Consider cyclic topologies?',('Yes', 'No'), inde
 linker_check = st.sidebar.radio('Show linker permutations?', ('Yes', 'No'), index=1)
 
 if linker_check == 'Yes':
-    linker_group=st.sidebar.radio('Select linker type:', ('All', 'Divalent', 'Trivalent'), index=1)
+    linker_group=st.sidebar.radio('Select linker type:', ('All', 'Divalent', 'Trivalent'))
 
 # Initialization value for scaling node size by literature precedence
 lit_scale='No'
