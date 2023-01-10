@@ -1,7 +1,6 @@
 # Import dependencies
 #from curses.ascii import isalpha, islower
 import streamlit as st
-st.set_page_config(layout="wide")
 import streamlit.components.v1 as components
 import pandas as pd
 import networkx as nx
@@ -108,14 +107,12 @@ def Make_List(top_string, add_dna=True):
 ###### F I N D   E D G E S #######
 ############ fnd_edg #############
 
-"""
-General Function Form: 
-Uses an outer For loop (loop A) that iteratively classifies elements of the list as either Regular, Cyclic, Branched, or Branched-Cyclic
-Uses an inner For loop (loop B) to re-iterate over the elements list and identifies edges based on specific criteria
-If criteria are met, adds edges to list of edges in the form [[A,B],...]
-"""
+    #General Function Form: 
+# Uses an outer For loop (loop A) that iteratively classifies elements of the list as either Regular, Cyclic, Branched, or Branched-Cyclic
+# Uses an inner For loop (loop B) to re-iterate over the elements list and identifies edges based on specific criteria
+# If criteria are met, adds edges to list of edges in the form [[A,B],...]
 
-edges=[] #Edges stored in list as node pairs. List is appended by calling the Add_Edge Function.
+#edges=[] #Edges stored in list as node pairs. List is appended by calling the Add_Edge Function.
 
 def Add_Edge(E1, E2): #Adds edge for the two input elements (ie nodes)
     edges.append([E1,E2])
@@ -226,7 +223,7 @@ def Find_Edges(top_list): #Finds the edges for a list of ordered topology elemen
 
 def Make_Bond_Dict(edges):
       
-    bond_dict={}
+    bond_dict=dict()
 
     for A, B in edges:
         if A in bond_dict:
@@ -261,31 +258,176 @@ def Terminal_Variant(list):
                     temp_list_a=list.copy() 
                     temp_list_a[-1]=list[-1].lower()
                     temp_string_a=Return_String(temp_list_a)
-                    linker_list.append(temp_string_a)
+                    temp_linker.full_linker_list.append(temp_string_a)
+
+class Linker:
+    def __init__(self):
+        self.linker_counter=0
+        self.divalent_counter=0
+        self.trivalent_counter=0
+    
+    full_linker_list=[]
+    divalent_list=[]
+    trivalent_list=[]
+    mixed_divalent_list=[]
+    mixed_trivalent_list=[]
+    linker_variant_nodes=[]
+    linker_variant_branches=[]
+
+class BondCount:
+    def __init__(self):
+        self.bond_dict=dict()
+
+    def Make_Bond_Dict(self, edges):
+        for A, B in edges:
+            if A in self.bond_dict:
+                self.bond_dict[A]+=1
+            if A not in self.bond_dict:
+                self.bond_dict[A]=1
+            if B in self.bond_dict:
+                self.bond_dict[B]+=1
+            if B not in self.bond_dict:
+                self.bond_dict[B]=1
+
+class Edges:
+    def __init__(self):
+        self.edge_list=[]
+
+    def Add_Edge(self, E1, E2): #Adds edge for the two input elements (ie nodes)
+        self.edge_list.append([E1,E2])
+
+    def Find_Edges(self, top_list): #Finds the edges for a list of ordered topology elements
+        for idxA, A in enumerate(top_list): #Classifies A in outer For loop. 
+            reg_A=False
+            cyc_A1=False
+            cyc_A2=False
+            br_A=False
+            br_cyc_A1=False
+            br_cyc_A2=False
+
+            
+            if len(A)==1: #Flags Regular Elements
+                reg_A=True
+            if len(A)==2: #Flags starting Cyclic elements (ie !A)
+                if A[0]=='!':
+                    cyc_start=A
+                    cyc_A1=True
+                if A[1]=="!":
+                    cyc_A2=True
+            if len(A)==3: #Flags Branched elements
+                if A!='DNA':
+                    br_A=True
+                    br_point=top_list[idxA-1] # Defines the branch point as the element before the Branch element
+            if len(A)==4: #Flags Branched-Cyclic elements.
+                if A[1]=='!': #If Branched-Cyclic element is the start of a cycle
+                    br_cyc_start=A
+                    br_cyc_A1=True
+                    br_cyc_point=top_list[idxA-1] # Defines the branch point as the element before the Branched-Cyclic element
+                if A[2]== '!': #If Branched-Cyclic element is the end of cycle
+                    br_cyc_A2=True
+                    br_cyc_end=A
+                    br_cyc_point=top_list[idxA-1] # Defines the branch point as the element before the Branched-Cyclic element
+            
+            #Classify B
+            for idxB, B in enumerate(top_list):
+                cyc_B=False
+                br_cyc_B=False
+
+                if A=='DNA' and B=='DNA': #Handles the final attachment point to DNA
+                    if '(' in top_list[(idxB-1)]: #If the last element BEFORE DNA is branched
+                        self.Add_Edge(top_list[idxB-2],B) #Attach DNA at second to last element before DNA
+                        break
+                    else:
+                        self.Add_Edge(top_list[idxB-1],B)#Attach DNA to penultimate element before DNA
+                        break
+
+                if A==B: #skip over matching indecies
+                    continue
+
+                if idxB == idxA+1: #If the B is the element following A
+                    if reg_A is True: #And if A is a regular element (not branched)
+                        if top_list[idxA+1]=='DNA':#Continue on if the next A element is DNA (since DNA is handled with its own seperate rule above)
+                            continue
+                        else: #Add edge between consecutive elements A and B
+                            self.Add_Edge(A,B)
+                    if cyc_A1 or cyc_A2 is True:
+                        if top_list[idxA+1]=='DNA':#Continue on if the next A element is DNA (since DNA is handled with its own seperate rule above)
+                            continue
+                        else: #Add edge between consecutive elements !A and B
+                            self.Add_Edge(A,B)
+
+                if len(B)==2: #If B is a cyclic element
+                    if B[1]=='!': #If B is the end point of a cycle
+                        cyc_end=B #Identify the the end point
+                        cyc_B=True #flag the end point as found
+                    
+                if len(B)==4: #If B is a branched cyclic element
+                    if B[2] =='!': #If B is the end point of a branched cycle
+                        br_cyc_end=B #Identify the the end point
+                        br_cyc_B=True #flag the end point as found
+
+                if br_A is True: #Resolves the branching edge for a regular branching element
+                    if idxB == idxA+1:
+                        if B !='DNA':
+                            self.Add_Edge(br_point,B)
+
+                if br_cyc_A1 is True: #Resolves the branching edge for a starting branched cyclic element (the cyclic edge is resolved later down)
+                    if idxB == idxA+1:
+                        if B !='DNA':
+                            self.Add_Edge(br_cyc_point,B)
+
+                if br_cyc_A2 is True: #Resolves the branching edge for an ending branched cyclic element (the cyclic edge is resolved later down)
+                    if idxB == idxA+1:
+                        if B!='DNA':
+                            self.Add_Edge(br_cyc_point,B)
+                
+                if cyc_A1 is True: #Resolves cases involving regular cyclic starting points
+                    if cyc_B is True:
+                        self.Add_Edge(cyc_start,cyc_end)
+                    if br_cyc_B is True:
+                        self.Add_Edge(cyc_start,br_cyc_end)
+                
+                if br_cyc_A1 is True: #Resolves cases involving branched cyclic starting points
+                    if cyc_B is True:
+                        self.Add_Edge(br_cyc_start,cyc_end)
+                    if br_cyc_B is True:
+                        self.Add_Edge(br_cyc_start,br_cyc_end)
+        return(self.edge_list)
+    
+
 
 # Checks if a given element (and corresonding index) in a given list is a linker
 def Linker_Search(current_list, search_element, search_idx):
     double_skip=False
     single_skip=False
     end_search=False
-
+    
     # Checks if search element has more than one edge 
     # If it does, replace the element with a lowercase variant
     # Creates string from list and adds string to linkers list
-    if bonds.get(search_element)>1: 
+    if bonds.bond_dict.get(search_element)>1: 
         var_str, var_list=Make_Linker_Variant(current_list, search_element, search_idx) #creates a variant with the current element replaced with a lowercase char
-        linker_list.append(var_str)# Adds variant to list of linkers
-        if bonds.get(search_element)==2:
-            #if bonds.get(search_element)!=3:  
-            var_str, var_list=Make_Linker_Variant(current_list,search_element, search_idx)
-            divalent_list.append(var_str)
-        if bonds.get(search_element)==3:
-            var_str, var_list=Make_Linker_Variant(current_list, search_element, search_idx)
-            trivalent_list.append(var_str)
-        
+        temp_linker.full_linker_list.append(var_str)# Adds variant to list of linkers      
+        if bonds.bond_dict.get(search_element)==2:
+            temp_linker.divalent_counter+=1
+            temp_linker.linker_counter+=1
+            #var_str, var_list=Make_Linker_Variant(current_list, search_element, search_idx)
+            if temp_linker.trivalent_counter>0:
+                temp_linker.mixed_divalent_list.append(var_str)
+            if temp_linker.trivalent_counter==0:
+                temp_linker.divalent_list.append(var_str)
+        if bonds.bond_dict.get(search_element)==3:
+            temp_linker.trivalent_counter+=1
+            temp_linker.linker_counter+=1
+            #var_str, var_list=Make_Linker_Variant(current_list, search_element, search_idx)
+            if temp_linker.divalent_counter>0:
+                temp_linker.mixed_trivalent_list.append(var_str)
+                temp_linker.trivalent_list.append(var_str)
+            if temp_linker.divalent_counter==0:
+                temp_linker.trivalent_list.append(var_str)        
 
-        # Determines if the next element is branched (used to determine where subsequent starting index should be)
-        # Breaks loop if there is an IndexError (ie the loop is on the last element of the list)  
+    # Determines if the next element is branched (used to determine where subsequent starting index should be)
+    # Breaks loop if there is an IndexError (ie the loop is on the last element of the list)  
         try: 
             if '(' in current_list[search_idx+1]:
                 double_skip=True
@@ -296,8 +438,8 @@ def Linker_Search(current_list, search_element, search_idx):
             
             
 
-        # Sets the approriate subsequent start index
-        # If index error is thrown, flag end_search as true
+    # Sets the approriate subsequent start index
+    # If index error is thrown, flag end_search as true
         if double_skip is True: #Defines new index start position or flags the end_search if index does not exist
             try:
                 start_idx=search_idx+3
@@ -326,24 +468,23 @@ def Find_Linkers(list):
     global top_list
     global double_skip
     global single_skip
-    global bonds
     global linker_list
-    global divalent_list
-    global trivalent_list
+    global temp_linker
+    global bonds
     
-    linker_list=[]
-    divalent_list=[]
-    trivalent_list=[]
-
-    #If the Find_Linkers function is called with a string, convert the string to a list 
+    edges=[]
     if isinstance(list,str):
             top_list_dna=Make_List(list, add_dna=True)
     else:
         top_list_dna=list
     
-    #Counts bonds (ie connections) where DNA is included as an element
-    edges=Find_Edges(top_list_dna)
-    bonds=Make_Bond_Dict(edges)
+    #Counts bonds (ie connections) with DNA as an element
+    linker_edges=Edges()
+
+    edges=linker_edges.Find_Edges(top_list_dna)
+    print(edges)
+    bonds=BondCount()
+    bonds.Make_Bond_Dict(edges)
 
     #Creates new list without DNA element 
     top_list_dna.pop(-1)
@@ -352,10 +493,13 @@ def Find_Linkers(list):
     # The secondary (ie inner) for loop considers all accetable linker permutations that come after the current iteration in the main loop
     for main_idx, main_element in enumerate(top_list):
 
-        if '(' in main_element: #Skips branch elements. These by definition cannot be linkers.
+        if main_idx==0:
+            temp_linker=Linker()
+
+        if '(' in main_element: #Skips branch elements
             continue
 
-        if bonds.get(main_element)==1: #Skips cases where the "A" element has only one connection (ie "A" is not part of a cyclic connection)
+        if bonds.bond_dict.get(main_element)==1: #Skips cases where the "A" element has only one connection (ie "A" is not part of a cyclic connection)
             continue
             
         if main_element=='A':
@@ -381,8 +525,7 @@ def Find_Linkers(list):
                     Terminal_Variant(child_list)
 
             initial_idx=initial_idx+skip_num
-    linker_dict={'All':linker_list, 'Divalent':divalent_list, 'Trivalent':trivalent_list}
-    return(linker_dict)
+    return(temp_linker.full_linker_list)
 
         
 
@@ -391,14 +534,18 @@ def Find_Linkers(list):
 ###### T R E E   G R O W T H ######
 ############# tr_grw ##############
 
-nodes=['A']
+main_tree_node_list=['A']
 growth_control={'A':'inactive', 'A':'active'}
-branches=[['A', 'AB']]
+main_tree_branches_list=[['A', 'AB']]
 temp_cyclic_string=''
+variant_nodes=[]
+variant_branches=[]
+
+selected_nodes=[]
+selected_branches=[]
 
 global cyclic_list
 cyclic_list=[]
-
 
 def Find_NodesAndEdges(A):
     for letter in A: #For each letter in the sequence list, consider all possible branched and cyclic permutations
@@ -406,13 +553,13 @@ def Find_NodesAndEdges(A):
             
             if value == 'active': #Looks for any active keys (ie nodes) in the growth control dict. 
                 new_node=str(current_node)+letter #Create a new node by appending the existing active node with an unbranched version of the current letter from the list
-                nodes.append(new_node)#Add the new node to the node list
+                main_tree_node_list.append(new_node)#Add the new node to the node list
                 growth_control[new_node]='active'#Add the new node to the growth control dict as active
                 growth_control[current_node]='inactive'#Sets the current growth control value to inactive
                 if current_node=='A':
                     continue #Skips the branch addition step for the 'A' node since the (A, AB) branch is initialized in the branch list
                 else:
-                    branches.append([current_node,new_node]) #Add a branch (ie edge) between the current key (ie node) and the new_node
+                    main_tree_branches_list.append([current_node,new_node]) #Add a branch (ie edge) between the current key (ie node) and the new_node
                 if cycle_check == 'Yes': 
                     Cyclic_Tree_Growth(current_node) #If cycle_check toggle (streamlit) is 'Yes' execute the Cyclic_Tree_Growth algorithm
                                         #This algorithm adds nodes and branches for all acceptable cyclic permutations of the current key (ie node) 
@@ -426,9 +573,9 @@ def Find_NodesAndEdges(A):
                     #continue
                 if '(' not in current_node: #Adds current letter to current node as branch element if the current node has no banching elements
                     new_br_node=str(current_node) + '(' + letter + ')'
-                    nodes.append(new_br_node)
+                    main_tree_node_list.append(new_br_node)
                     growth_control[new_br_node]='active'
-                    branches.append([current_node,new_br_node])
+                    main_tree_branches_list.append([current_node,new_br_node])
                     if cycle_check == 'Yes':      
                         Cyclic_Tree_Growth(new_br_node)
                         growth_control[new_br_node]='active'
@@ -439,9 +586,9 @@ def Find_NodesAndEdges(A):
                     templist=Make_List(current_node,add_dna=False)
                     if '(' not in templist[-1]:
                         new_br_node=str(current_node) + '(' + letter + ')'
-                        nodes.append(new_br_node)
+                        main_tree_node_list.append(new_br_node)
                         growth_control[new_br_node]='active'
-                        branches.append([current_node,new_br_node])
+                        main_tree_branches_list.append([current_node,new_br_node])
                         if cycle_check == 'Yes':      
                             Cyclic_Tree_Growth(new_br_node)
                             growth_control[new_br_node]='active'
@@ -458,10 +605,34 @@ def Find_NodesAndEdges(A):
                 if current_node.isupper(): #Adds linker permutations for final nodes in the growth dict that are both all uppercase and active. 
                     if linker_check == 'Yes':
                         Linker_Tree_Growth(current_node)
+        
+    if linker_group=='All':
+        linker_selection=validate_linker_nodes(temp_linker.full_linker_list)
+    if linker_group=='Divalent Only':
+        linker_selection=validate_linker_nodes(temp_linker.divalent_list)
+    if linker_group=='Trivalent Only':
+        linker_selection=validate_linker_nodes(temp_linker.trivalent_list)
+    if linker_group=='Divalent Mixed':
+        linker_selection=validate_linker_nodes(temp_linker.mixed_divalent_list)
+    if linker_group=='Trivalent Mixed':
+        linker_selection=validate_linker_nodes(temp_linker.mixed_trivalent_list)
 
 
-                    
-    return(nodes, branches)
+
+    selected_nodes=main_tree_node_list #The nodes from the main tree
+    selected_branches=main_tree_branches_list #The branches between nodes in the main tree
+    linker_variants=list(set(temp_linker.linker_variant_nodes)) #The list of all unique linker variants
+    linker_branch_variants=prepare_branches()
+ 
+    
+    if linker_check == "Yes":
+        selected_nodes=selected_nodes + linker_variants
+        compiled_branches=compile_linker_branches(linker_branch_variants, linker_selection)
+        selected_branches=selected_branches + compiled_branches
+        
+
+
+    return(selected_nodes, selected_branches)
 
 #Finds all valid cyclic permutations of an acyclic topology list or string.
 def Find_Cycles(list):
@@ -517,37 +688,68 @@ def Find_Cycles(list):
 def Cyclic_Tree_Growth(node_variable):
     Find_Cycles(node_variable) #Takes the input acyclic key (ie node) and returns a list of possible cyclic topologies
     for seq in cyclic_list:
-        nodes.append(seq) #Adds the cyclic string to the node list
+        variant_nodes.append(seq) #Adds the cyclic string to the node list
         growth_control[seq]='inactive' #Adds the cyclic string to the growth control dict as inactive
-        branches.append([node_variable,seq]) #Adds a branch between acyclic parent node and the cyclic child node
+        variant_branches.append([node_variable,seq]) #Adds a branch between acyclic parent node and the cyclic child node
 
 def Linker_Tree_Growth(node_variable):
-    linker_dict=Find_Linkers(node_variable)
-    if linker_group=='All':
-        linkers=linker_dict['All']
-    if linker_group=='Divalent':
-        linkers=linker_dict['Divalent']
-    if linker_group=='Trivalent':
-        linkers=linker_dict['Trivalent']
+    linkers=Find_Linkers(node_variable)
+    linkers_list=list(set(linkers))
     possible_linkers='abcdefghijk'
-    for linker in linkers: #This loop checks for invalid linkers (linkers enclosed in "( )") and omits them from the tree growth algorithm 
+    for linker in linkers_list: #This loop checks for invalid linkers (linkers enclosed in "( )") and omits them from the tree growth algorithm 
         linker_violation=False
-        if linker[-1]==")":
+        if ")" in linker:
             check_node=Make_List(linker, add_dna=False)
-            for let in check_node[-1]:
-                if let in possible_linkers:
+            for element in check_node:
+                if ")" in element and element[1] in possible_linkers:
                     linker_violation=True
         if linker_violation is True:
             continue
-        nodes.append(linker) #Adds the linker string to the node list
+        temp_linker.linker_variant_nodes.append(linker) #Adds the linker string to the node list
         growth_control[linker]='inactive' #Adds the linker string to the growth control dict as inactive
-        branches.append([node_variable,linker]) #Adds a branch between parent node and the linker child node
+        temp_linker.linker_variant_branches.append([node_variable,linker]) #Adds a branch between parent node and the linker child node
 
 
 
+def validate_linker_nodes(linker_node_list):
+    validated_linker_nodes=[]
+    possible_linkers='abcdefghijk'
+    for linker in linker_node_list: #This loop checks for invalid linkers (linkers enclosed in "( )") and omits them from the tree growth algorithm 
+        linker_violation=False
+        if ")" in linker:
+            check_node=Make_List(linker, add_dna=False)
+            for element in check_node:
+                if ")" in element and element[1] in possible_linkers:
+                    linker_violation=True
+        if linker_violation is True:
+            continue
+        validated_linker_nodes.append(linker) #Adds the linker string to the node list
+    return(validated_linker_nodes)
 
+def compile_linker_branches(full_edge_list, linker_subset_list):
+    extracted_edges=[]
+    for [node1, node2] in full_edge_list:
+        for target_linker in linker_subset_list:
+            if node2==target_linker:
+                extracted_edges.append([node1,node2])
+    return(extracted_edges)
 
-
+def prepare_branches():
+    
+    branch_pairs=temp_linker.linker_variant_branches
+    temp_pair_list=[]
+    for i in range(len(temp_linker.linker_variant_branches)):
+        temp_pair=branch_pairs[i]
+        if temp_pair[0] == temp_pair[1].upper():
+            temp_pair_list.append(temp_pair)
+    
+    linker_branch_set=set() #The list of all unique edges between a linker nodes and a main tree node
+    branch_variants=[]
+    for x in temp_pair_list:
+        if tuple(x) not in linker_branch_set:
+            branch_variants.append(x)
+            linker_branch_set.add(tuple(x))
+    return(branch_variants)
 
 ###########################################
 ###### G R A P H   F U N C T I O N S ######
@@ -708,7 +910,7 @@ def make_edge_list():
 ###### S T R E A M L I T ######
 ############# strm ############
 
-
+st.set_page_config(layout="wide")
 
 # Set header title
 st.title('DEL Topology Visualization')
@@ -725,7 +927,7 @@ cycle_check = st.sidebar.radio('Consider cyclic topologies?',('Yes', 'No'), inde
 linker_check = st.sidebar.radio('Show linker permutations?', ('Yes', 'No'), index=1)
 
 if linker_check == 'Yes':
-    linker_group=st.sidebar.radio('Select linker type:', ('All', 'Divalent', 'Trivalent'))
+    linker_group=st.sidebar.radio('Select linker type:', ('All', 'Divalent Only', 'Divalent Mixed', 'Trivalent Only', 'Trivalent Mixed'), index=0)
 
 # Initialization value for scaling node size by literature precedence
 lit_scale='No'
@@ -744,17 +946,11 @@ sequence=DE_selection[1:]
 seq_list=list(sequence)
 
 #teststring='A!BCD(E!)F'
-#testseq=['B', 'C', 'D', 'E', 'F']
+test_list=['B', 'C', 'D', 'E']
 
 nodes, edges=Find_NodesAndEdges(seq_list)
 
-sorted_nodes= sorted(nodes, key= lambda x: x.count('('))
 
-
-#print(nodes)
-#print(sorted_nodes)
-#print(edges)
-#print(linkers)
 
 
 if lit_scale == 'Yes':
@@ -763,6 +959,7 @@ if lit_scale == 'Yes':
     temp_dict=df.set_index('Entry').to_dict()
     for k,v in temp_dict.items():
         occurance_dict=v
+
 
 
 TREE= Network(height='800px',width='1000px')
